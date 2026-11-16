@@ -81,7 +81,7 @@ Never needed, always appreciated. A thumbs-up and a favourite help a lot too.
 ---
 
 ## Licence
-MIT - free to use, change and share; keep the licence and the authors' names. All code, models and textures are my own work.
+MIT - free to use, change and share; keep the licence and the authors' names. All code, models and textures are original work.
 
 ## Credits
 Written for Ascension Gates by the PowerGrid authors. The ideas follow Spacebuild / CAF Resource Distribution - none of their code or assets are included.

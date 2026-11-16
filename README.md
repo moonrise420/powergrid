@@ -74,14 +74,14 @@ PowerGrid collects nothing. It only goes online when you press "Check for update
 ## Power the people
 > Every part on this page needs energy. So do the people who made it.
 
-If PowerGrid keeps your builds running, a small tip keeps us running:
+If PowerGrid keeps your builds running, a small tip keeps me running:
 [![](.github/images/donate.png)](https://www.paypal.me/soulridejourney)
 Never needed, always appreciated. A thumbs-up and a favourite help a lot too.
 
 ---
 
 ## Licence
-MIT - free to use, change and share; keep the licence and the authors' names. All code, models and textures are our own work.
+MIT - free to use, change and share; keep the licence and the authors' names. All code, models and textures are my own work.
 
 ## Credits
 Written for Ascension Gates by the PowerGrid authors. The ideas follow Spacebuild / CAF Resource Distribution - none of their code or assets are included.

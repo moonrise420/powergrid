@@ -74,7 +74,8 @@ PowerGrid collects nothing. It only goes online when you press "Check for update
 ## Power the people
 > Every part on this page needs energy. So do the people who made it.
 
-If PowerGrid keeps your builds running, a small tip keeps us running: [paypal.me/soulridejourney](https://www.paypal.me/soulridejourney)
+If PowerGrid keeps your builds running, a small tip keeps us running:
+[![](.github/images/donate.png)](https://www.paypal.me/soulridejourney)
 Never needed, always appreciated. A thumbs-up and a favourite help a lot too.
 
 ---

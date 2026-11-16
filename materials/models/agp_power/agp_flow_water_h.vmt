@@ -1,0 +1,14 @@
+"UnlitGeneric"
+{
+	"$basetexture" "models/agp_power/agp_flow_water"
+	"$translucent" "1"
+	"Proxies"
+	{
+		"TextureScroll"
+		{
+			"texturescrollvar" "$basetexturetransform"
+			"texturescrollrate" "0.9"
+			"texturescrollangle" "0"
+		}
+	}
+}

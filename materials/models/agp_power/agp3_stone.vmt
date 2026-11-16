@@ -1,0 +1,10 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/agp_power/agp3_stone"
+	"$bumpmap" "models/agp_power/agp3_stone_n"
+	"$phong" "1"
+	"$phongexponent" "30"
+	"$phongboost" "1.1"
+	"$phongfresnelranges" "[0.25 0.5 1]"
+	"$phongtint" "[1 0.96 0.9]"
+}

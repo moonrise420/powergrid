@@ -1,0 +1,14 @@
+"UnlitGeneric"
+{
+	"$basetexture" "models/agp_power/agp_flow_air"
+	"$additive" "1"
+	"Proxies"
+	{
+		"TextureScroll"
+		{
+			"texturescrollvar" "$basetexturetransform"
+			"texturescrollrate" "1.6"
+			"texturescrollangle" "0"
+		}
+	}
+}

@@ -1,0 +1,5 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/agp_power/agp_screen"
+	"$selfillum" "1"
+}

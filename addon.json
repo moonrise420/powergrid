@@ -1,0 +1,13 @@
+{
+	"title": "PowerGrid - Resource Network & Life Support",
+	"type": "tool",
+	"tags": [
+		"build",
+		"realism"
+	],
+	"ignore": [
+		"*.md",
+		"LICENSE",
+		".git*"
+	]
+}

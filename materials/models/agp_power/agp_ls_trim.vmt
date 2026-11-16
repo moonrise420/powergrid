@@ -1,0 +1,22 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "models/agp_power/agp_ls_trim"
+	"$bumpmap" "models/agp_power/agp_ls_trim_n"
+	"$phong" "1"
+	"$phongexponent" "38"
+	"$phongboost" "6"
+	"$phongfresnelranges" "[0.65 0.82 1]"
+	"$phongtint" "[1 0.78 0.42]"
+	"$envmap" "env_cubemap"
+	"$envmaptint" "[.18 .13 .06]"
+	"$normalmapalphaenvmapmask" "1"
+	"$selfillum" "1"
+	"$selfillumtint" "[1 1 1]"
+	"Proxies"
+	{
+		"AGPGlow"
+		{
+			"resultVar" "$selfillumtint"
+		}
+	}
+}

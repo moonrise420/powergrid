@@ -7,7 +7,7 @@ AGP = AGP or {}                           -- the network keeps its first name (A
 -- our own links: fill in once they exist (empty = no button)
 PowerGrid.Links = {
 	GitHub = "https://github.com/moonrise420/powergrid",
-	Workshop = "", -- e.g. https://steamcommunity.com/sharedfiles/filedetails/?id=<id>
+	Workshop = "https://steamcommunity.com/sharedfiles/filedetails/?id=3840679072",
 	Tip = "https://www.paypal.me/soulridejourney", -- a tip / donation page (Ko-fi, PayPal.me, ...): the About panel shows a "Support / Tip" button
 }
 

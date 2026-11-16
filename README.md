@@ -5,7 +5,7 @@
 PowerGrid is a resource network for Garry's Mod. Place a generator, a cell and a node, link them, and your build has power. Take it to space and it keeps you alive there too. It works on its own, and any addon can plug into it.
 
 ## Install
-**Steam Workshop (easiest):** subscribe there.
+**Steam Workshop (easiest):** subscribe [there](https://steamcommunity.com/sharedfiles/filedetails/?id=3840679072).
 
 **By hand:** download `powergrid-1.0.0.zip` from [Releases](../../releases/latest) and unpack it into
 `garrysmod/addons/` (you get the folder `garrysmod/addons/powergrid`).
@@ -50,7 +50,7 @@ Please use [Issues](../../issues): pick *Bug report* or *Wish or idea*. On the S
 ## Required
 Nothing. PowerGrid works alone.
 - With **Spacebuild / CAF** installed it uses Spacebuild's Resource Distribution, so old builds keep working. The setting "Always PowerGrid" switches back to its own network.
-- **Ascension Gates**, **StarCore**, **Black Hole Cache** and **SpaceGrid** build on it: *Ascension Gates - Complete* (Steam Workshop collection)
+- **Ascension Gates**, **StarCore**, **Black Hole Cache** and **SpaceGrid** build on it: [Ascension Gates - Complete](https://steamcommunity.com/sharedfiles/filedetails/?id=3840681489)
 
 ## First steps
 1. Q > tools on the right > tab **PowerGrid** > **PowerGrid Parts**.

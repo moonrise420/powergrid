@@ -1,4 +1,5 @@
 # PowerGrid - Resource Network & Life Support
+<img src=".github/images/thumbnail.jpg" width="220" align="right" alt="">
 > Energy, air and water for everything you build. Light on the server, simple to wire up.
 
 PowerGrid is a resource network for Garry's Mod. Place a generator, a cell and a node, link them, and your build has power. Take it to space and it keeps you alive there too. It works on its own, and any addon can plug into it.
@@ -11,6 +12,16 @@ PowerGrid is a resource network for Garry's Mod. Place a generator, a cell and a
 
 ## Bugs, problems and wishes
 Please use [Issues](../../issues): pick *Bug report* or *Wish or idea*. On the Steam Workshop page the comments work too.
+
+## Pictures
+<p>
+<img src=".github/images/01_gal2_gmfreespace13_wide.jpg" width="49%" alt="">
+<img src=".github/images/02_gal2_gmfreespace13_fusion.jpg" width="49%" alt="">
+<img src=".github/images/03_gal2_gmfreespace13_green.jpg" width="49%" alt="">
+<img src=".github/images/04_gal2_gmfreespace13_solar.jpg" width="49%" alt="">
+<img src=".github/images/05_gal2_gmfreespace13_core.jpg" width="49%" alt="">
+<img src=".github/images/06_gal2_gmfreespace13_low.jpg" width="49%" alt="">
+</p>
 
 ---
 

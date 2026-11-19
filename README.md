@@ -76,7 +76,7 @@ PowerGrid collects nothing. It only goes online when you press "Check for update
 
 If PowerGrid keeps your builds running, a small tip keeps me running:
 [![](.github/images/donate.png)](https://www.paypal.me/soulridejourney)
-Never needed, always appreciated. A thumbs-up and a favourite help a lot too.
+A thumbs-up and a favourite help a lot too.
 
 ---
 

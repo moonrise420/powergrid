@@ -34,8 +34,8 @@ Please use [Issues](../../issues): pick *Bug report* or *Wish or idea*. On the S
 - Resource tanks for oxygen, water, nitrogen, hydrogen and more
 
 ### Life support
-- Life support core: air and a pleasant climate for a whole ship, or a bubble of air on open ground
-- Space suits with a small HUD that only shows up when something is wrong
+- Life support core: air and a pleasant climate for a whole StarCore ship, or a bubble of air on open ground
+- Every player wears a space suit, with a small HUD that only shows up when something is wrong
 - Suit dispenser, heaters and coolers, air compressor, water pump, water splitter, ram scoop
 - Hydroponics, environment probe, terraformer, gravity regulator
 - A space simulation with planets - or Spacebuild's own, when Spacebuild runs
@@ -58,7 +58,7 @@ Nothing. PowerGrid works alone.
 3. Take the **PowerGrid Connector**: left click the panel and the cell, right click the node.
 4. Look at the node: its display shows the energy coming in.
 
-Settings: Q > PowerGrid > Settings.
+Settings: Q > tools on the right > the **PowerGrid** tab > Settings > PowerGrid.
 
 ## For addon makers
 ```lua
@@ -67,12 +67,12 @@ PowerGrid.AddSpawn(class, group, order) -- your entity in the PowerGrid spawn ta
 ```
 
 ## Privacy
-PowerGrid collects nothing. It only goes online when you press "Check for updates" in its About panel - then it asks GitHub for the newest version number and sends nothing about you.
+PowerGrid collects nothing. From the Workshop it never goes online - Steam keeps it up to date. Installed by hand from GitHub, it has a "Check for updates" button in its About panel: that asks GitHub for the newest version number and sends nothing about you.
 
 ---
 
 ## Power the people
-> Every part on this page needs energy. So do the people who made it.
+> Every part on this page needs energy. So does the person who made it.
 
 If PowerGrid keeps your builds running, a small tip keeps me running:
 [![](.github/images/donate.png)](https://www.paypal.me/soulridejourney)
@@ -81,7 +81,7 @@ A thumbs-up and a favourite help a lot too.
 ---
 
 ## Licence
-MIT - free to use, change and share; keep the licence and the authors' names. All code, models and textures are original work.
+MIT - free to use, change and share; keep the licence and the author's name. All code, models and textures are original work.
 
 ## Credits
-Written for Ascension Gates by the PowerGrid authors. The ideas follow Spacebuild / CAF Resource Distribution - none of their code or assets are included.
+Written for Ascension Gates by moonrise420. The ideas follow Spacebuild / CAF Resource Distribution - none of their code or assets are included.

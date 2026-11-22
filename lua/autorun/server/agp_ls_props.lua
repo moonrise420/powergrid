@@ -1,6 +1,6 @@
--- PowerGrid: gravity for loose physics props (2026-11-14, setting agp_ls_prop_gravity, default 1).
--- Where the space simulation runs: a prop in space has no gravity and no air drag, on a planet it has the planet's gravity,
--- inside one of our life support areas / ship interiors / gravity zones it has normal (or the zone's) gravity.
+-- PowerGrid: gravity for loose physics props (setting agp_ls_prop_gravity, default 1). Where the
+-- space simulation runs: a prop in space has no gravity and no air drag, on a planet it has the planet's gravity, inside
+-- one of our life support areas / ship interiors / gravity zones it has normal (or the zone's) gravity.
 -- Spacebuild checks EVERY entity against every planet every second. This does not.
 -- (Water-only mode: only gravity zone devices work on props, nothing else.)
 --
@@ -98,7 +98,7 @@ local function restore(ent)
         end
     end
     ent.AGPPGg = nil
-    -- (forget when it was last looked at: switched on again, it must be decided at once - the game test found it skipped for 8 s, 2026-11-14)
+    -- (forget when it was last looked at: switched on again, it must be decided at once - the game test found it skipped for 8 s)
     ent.AGPPGCell, ent.AGPPGT, ent.AGPPGEpoch = nil, nil, nil
     scaled[ent] = nil
     touched[ent] = nil
@@ -223,7 +223,7 @@ hook.Add("Think", "AGP.LS.Props", function()
         stats.seconds = stats.seconds + (SysTime() - t0)
     elseif next(scaled) == nil then
         -- (only while nothing is pushed: before, this ran on every frame between two pushes, so a push made up for one frame
-        -- instead of 0.05 s and a 0.6 g moon pulled like 0.9 g - found in the game test 2026-11-14)
+        -- instead of 0.05 s and a 0.6 g moon pulled like 0.9 g - found in the game test)
         lastPush = now
     end
 end)

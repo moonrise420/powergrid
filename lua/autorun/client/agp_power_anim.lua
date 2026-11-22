@@ -17,7 +17,9 @@
 --   terraformer   the halo ring turns round the spire while it works, glowing motes rise from the emitter
 --   hydroponics   the misting arm sweeps over the plants while they grow
 --   gravity       the two rings turn against each other (faster at a stronger setting)
---   glow          cores, tanks and rings glow brighter the fuller / busier the part is (material proxy AGPGlow)
+--   heavy water the centrifuge drum spins up while it extracts and runs down when it stops fuel cell soft
+--   electric hum and trickling water while it works glow cores, tanks and rings
+--   glow brighter the fuller / busier the part is (material proxy AGPGlow)
 AGP = AGP or {}
 
 local cvSound = CreateClientConVar("agp_power_sounds", "1", true, false, "Ascension Gates: machine sounds of PowerGrid parts", 0, 1)
@@ -37,6 +39,8 @@ local SOUNDS = {
     terraformer = { { "ambient/levels/citadel/field_loop1.wav", 0.16, 50 } },
     plant = { { "ambient/water/water_flow_loop1.wav", 0.07, 165 } },
     gravity = { { "ambient/levels/citadel/field_loop1.wav", 0.12, 125 } },
+    fuelcell = { { "ambient/energy/electric_loop.wav", 0.06, 110 }, { "ambient/water/water_flow_loop1.wav", 0.08, 160 } },
+    heavywater = { { "ambient/machines/courtyard_mach_loop.wav", 0.2, 150 }, { "ambient/water/water_flow_loop1.wav", 0.1, 120 } },
 }
 local MOTOR = "ambient/levels/labs/machine_moving_loop3.wav"
 
@@ -307,6 +311,11 @@ function AGP.PowerAnim(ent)
     elseif k == "turbine" then
         setAng(ent, "rotor", Angle(spin(ent, "AGPRotorA", dt, on and 540 or 0), 0, 0))
         loops(ent, on, SOUNDS.turbine)
+    elseif k == "fuelcell" then
+        loops(ent, on, SOUNDS.fuelcell)
+    elseif k == "heavywater" then
+        setAng(ent, "rotor", Angle(0, spin(ent, "AGPHwxA", dt, on and 420 or 0), 0))   -- centrifuge: yaw
+        loops(ent, on, SOUNDS.heavywater)
     elseif k == "probe" then
         setAng(ent, "head", Angle(0, spin(ent, "AGPHeadA", dt, 45), 0))
     elseif k == "terraformer" then

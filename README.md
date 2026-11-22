@@ -7,7 +7,7 @@ PowerGrid is a resource network for Garry's Mod. Place a generator, a cell and a
 ## Install
 **Steam Workshop (easiest):** subscribe [there](https://steamcommunity.com/sharedfiles/filedetails/?id=3840679072).
 
-**By hand:** download `powergrid-1.0.0.zip` from [Releases](../../releases/latest) and unpack it into
+**By hand:** download `powergrid-1.0.1.zip` from [Releases](../../releases/latest) and unpack it into
 `garrysmod/addons/` (you get the folder `garrysmod/addons/powergrid`).
 
 ## Bugs, problems and wishes
@@ -29,6 +29,7 @@ Please use [Issues](../../issues): pick *Bug report* or *Wish or idea*. On the S
 
 ### Energy
 - Solar panels (they need open sky), a wind turbine (the higher, the better), fusion reactor, hydro generator, steam turbine
+- A heavy water extractor that makes the fusion reactor's fuel
 - Energy cells from XS to XL, power nodes, power displays
 - A power valve to join or split two networks
 - Resource tanks for oxygen, water, nitrogen, hydrogen and more
@@ -36,7 +37,8 @@ Please use [Issues](../../issues): pick *Bug report* or *Wish or idea*. On the S
 ### Life support
 - Life support core: air and a pleasant climate for a whole StarCore ship, or a bubble of air on open ground
 - Every player wears a space suit, with a small HUD that only shows up when something is wrong
-- Suit dispenser, heaters and coolers, air compressor, water pump, water splitter, ram scoop
+- Suit dispenser, heaters and coolers, air compressor (oxygen or nitrogen), water pump, water splitter, fuel cell, ram scoop
+- Air and water go round: people breathe out carbon dioxide, hydroponics turn it back into oxygen, a fuel cell makes water from hydrogen
 - Hydroponics, environment probe, terraformer, gravity regulator
 - A space simulation with planets - or Spacebuild's own, when Spacebuild runs
 
@@ -53,7 +55,7 @@ Nothing. PowerGrid works alone.
 - **Ascension Gates**, **StarCore**, **Black Hole Cache** and **SpaceGrid** build on it: [Ascension Gates - Complete](https://steamcommunity.com/sharedfiles/filedetails/?id=3840681489)
 
 ## First steps
-1. Q > tools on the right > tab **PowerGrid** > **PowerGrid Parts**.
+1. Q > tools on the right > the **PowerGrid** tab > **PowerGrid Parts**.
 2. Place a solar panel, an energy cell and a power node.
 3. Take the **PowerGrid Connector**: left click the panel and the cell, right click the node.
 4. Look at the node: its display shows the energy coming in.

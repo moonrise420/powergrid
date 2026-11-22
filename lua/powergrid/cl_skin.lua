@@ -151,9 +151,9 @@ function AGP.StyleCombo(cb)
 	end
 end
 
--- No text outside its box, in every language (owner 2026-10-25): after a page is built, every one-line text that is
--- wider than its room wraps onto more lines and its row grows. Slider labels go on their own line above the slider,
--- checkbox and button texts wrap. Runs on all pages of our tool tabs (Stargate, SpaceGrid) and on our windows.
+-- No text outside its box, in every language: after a page is built, every one-line text that is wider than its
+-- room wraps onto more lines and its row grows. Slider labels go on their own line above the slider, checkbox and
+-- button texts wrap. Runs on all pages of our tool tabs (Stargate, SpaceGrid) and on our windows.
 local function textWidth(p, t)
     surface.SetFont(p:GetFont() or "DermaDefault")
     local w, h = surface.GetTextSize(t)
@@ -226,8 +226,8 @@ function AGP.FitTexts(root)
                 end
             end
         end
-        -- readable fields everywhere (owner 2026-10-25: white drop-downs with white text on some pages)
-        -- by what they can do, not by class name (old Stargate pages use CtrlListBox and other DComboBox copies)
+        -- readable fields everywhere (white drop-downs with white text on some pages) by what they can
+        -- do, not by class name (old Stargate pages use CtrlListBox and other DComboBox copies)
         local isCombo = p.AddChoice and p.ChooseOption and p.OpenMenu
         if isCombo and not p.AGPStyled then p.AGPStyled = true; AGP.StyleCombo(p)
         elseif p.SetUpdateOnType and not isCombo and not p.AGPStyled then

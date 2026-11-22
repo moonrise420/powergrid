@@ -9,7 +9,9 @@
 --   tank     resource tank (XS..XL): holds one resource, E changes it while empty (skin = resource)
 --   lscore   life support core: breathable area (the StarCore ship it sits on, or a bubble), makes oxygen from water
 --   dispenser suit dispenser: E refills your suit (oxygen, energy, water as coolant)
---   compressor air compressor: oxygen out of a breathable planet's air
+--   compressor air compressor: oxygen (or nitrogen: E / Wire "Nitrogen") out of a breathable planet's air
+--   heavywater heavy water extractor: water + energy -> heavy water (the fusion reactor's fuel)
+--   fuelcell   fuel cell: hydrogen + oxygen -> water + a little energy (the splitter backwards; water in space)
 --   waterpump  water pump: water while its intake is in water
 --   heater / cooler  climate control: inside a life support area they help the core reach its target temperature
 --   splitter   water splitter: water + energy -> hydrogen + oxygen (2 : 1), anywhere
@@ -21,8 +23,8 @@
 --   terraformer  terraformer: energy + gases slowly turn the planet it stands on towards breathable air and a livable climate
 --   plant      hydroponics (S / L): carbon dioxide + water + energy (light) -> oxygen
 --   gravity    gravity regulator: artificial gravity 0..2 g in a radius (stations, props in space)
--- (2026-11-14: the last seven are the life support devices Spacebuild had and PowerGrid lacked; devices 4..7 use the
--- environment API of lua/autorun/server/agp_ls_env.lua: AGP.LS.Probe / PlanetAt / ChangeGas / SetPlanetTemperature /
+-- (the last seven are the life support devices Spacebuild had and PowerGrid lacked; devices 4..7 use the environment
+-- API of lua/autorun/server/agp_ls_env.lua: AGP.LS.Probe / PlanetAt / ChangeGas / SetPlanetTemperature /
 -- AddGravityZone / RemoveGravityZone - every call is guarded, so they also load and run before that API exists)
 -- Works with PowerGrid's own network and with Spacebuild/RD (lua/powergrid/sv_bridge.lua).
 if PowerGrid and PowerGrid.SetupEntity then PowerGrid.SetupEntity(ENT) end
@@ -63,7 +65,7 @@ if SERVER then
     if not ConVarExists("agp_blackhole_cache_everyone") then
         CreateConVar("agp_blackhole_cache_everyone", "0", { FCVAR_ARCHIVE }, "Ascension Gates: 1 = every player may spawn the Black Hole Cache (default: admins only)")
     end
-    -- 2026-11-14: admin switch for the Terraformer (it changes the planet for everybody): 1 = allowed (default), 0 = off
+    -- admin switch for the Terraformer (it changes the planet for everybody): 1 = allowed (default), 0 = off
     if not ConVarExists("agp_terraform_allowed") then
         CreateConVar("agp_terraform_allowed", "1", { FCVAR_ARCHIVE, FCVAR_REPLICATED }, "PowerGrid: 1 = Terraformers work, 0 = they are switched off (admin setting)", 0, 1)
     end
@@ -134,9 +136,10 @@ if SERVER then
             self:SetTankResource(1)
         elseif k == "lscore" then
             self:AddResource("oxygen", self.AGPCapacity, 0)
+            self:AddResource("carbon dioxide", self.AGPCapacity, 0)   -- what the people inside breathe out
             self.Radius = 500
             if self.CreateWireInputs then self:CreateWireInputs("On", "Radius", "Temperature") end
-            if self.CreateWireOutputs then self:CreateWireOutputs("Active", "Radius", "Ship", "Oxygen", "Temperature", "Target Temperature", "Outside Temperature") end
+            if self.CreateWireOutputs then self:CreateWireOutputs("Active", "Radius", "Ship", "Oxygen", "Temperature", "Target Temperature", "Outside Temperature", "Carbon Dioxide") end
             self.AGPWantOn = true
             self.TargetTemp = 293.15
         elseif k == "heater" or k == "cooler" then
@@ -145,7 +148,21 @@ if SERVER then
             self.AGPWantOn = true
         elseif k == "compressor" or k == "waterpump" then
             self:AddResource(k == "compressor" and "oxygen" or "water", self.AGPCapacity, 0)
+            -- the compressor collects oxygen or nitrogen (E / Wire "Nitrogen"); nitrogen storage is only added once it is
+            -- chosen (a pasted copy brings its gas and storage along in its entity table)
+            if k == "compressor" and self.CreateWireInputs then self:CreateWireInputs("Nitrogen") end
             if self.CreateWireOutputs then self:CreateWireOutputs("Producing") end
+        elseif k == "heavywater" then
+            self:AddResource("heavy water", self.AGPCapacity, 0)
+            if self.CreateWireInputs then self:CreateWireInputs("On") end
+            if self.CreateWireOutputs then self:CreateWireOutputs("Producing", "Heavy Water per second") end
+            self.AGPWantOn = true
+        elseif k == "fuelcell" then
+            self:AddResource("water", self.AGPCapacity, 0)
+            self:AddResource("energy", 50000, 0)
+            if self.CreateWireInputs then self:CreateWireInputs("On") end
+            if self.CreateWireOutputs then self:CreateWireOutputs("Producing", "Energy per second", "Water per second") end
+            self.AGPWantOn = true
         elseif k == "splitter" then
             self:AddResource("hydrogen", self.AGPCapacity, 0)
             self:AddResource("oxygen", self.AGPCapacity, 0)
@@ -211,9 +228,9 @@ if SERVER then
                 end
             end
         end
-        -- AGP 2026-11-08: with Spacebuild's Resource Distribution the parts that hold nothing themselves (heaters,
-        -- coolers, suit dispenser, displays, valve) never joined it (only AddResource does that), so the Connector tool
-        -- and the power node refused them ("does not use power") and they saw no energy: devices without storage now
+        -- AGP: with Spacebuild's Resource Distribution the parts that hold nothing themselves (heaters, coolers,
+        -- suit dispenser, displays, valve) never joined it (only AddResource does that), so the Connector tool and the
+        -- power node refused them ("does not use power") and they saw no energy: devices without storage now
         local rdNet = PowerGrid.RD3()
         if rdNet and not self.IsNode and table.Count(rdNet.GetEntityTable(self) or {}) == 0 then
             if rdNet.RegisterNonStorageDevice then rdNet.RegisterNonStorageDevice(self) else rdNet.AddResource(self, "energy", 0, 0) end
@@ -370,7 +387,7 @@ if SERVER then
     end
     function ENT:Use(p)
         local k = self.AGPKind
-        if k == "pump" then self:SetPumpOn(not self:GetOn())
+        if k == "pump" then self:SetPumpOn(self.AGPPumpOn == false)   -- by its real state, not the screen
         elseif k == "tank" then
             local r = self.AGPRes and self.AGPRes[self.TankRes]
             if r and r.amount > 0 then
@@ -396,7 +413,12 @@ if SERVER then
             self.AGPWantOn = not self.AGPWantOn
             self:ClimateState()
             self:EmitSound(self.AGPWantOn and "buttons/button14.wav" or "buttons/button10.wav", 60)
-        elseif k == "fusion" or k == "turbine" or k == "terraformer" or k == "plant" or k == "gravity" then
+        elseif k == "compressor" then
+            -- E switches what it collects: oxygen <-> nitrogen
+            self:SetCompressorGas(self.AGPGas == "nitrogen" and "oxygen" or "nitrogen")
+            if IsValid(p) and p:IsPlayer() then PowerGrid.Say(p, "agp_msg_comp_gas", "Now collects: %s", "agp_res_" .. self.AGPGas) end
+            self:EmitSound("buttons/lever7.wav", 60)
+        elseif k == "fusion" or k == "turbine" or k == "terraformer" or k == "plant" or k == "gravity" or k == "heavywater" or k == "fuelcell" then
             -- E switches the device on / off (the same as Wire "On"); a tripped reactor stays off until it has cooled
             self.AGPWantOn = not self.AGPWantOn
             self:EmitSound(self.AGPWantOn and "buttons/button14.wav" or "buttons/button10.wav", 60)
@@ -428,7 +450,8 @@ if SERVER then
             self:ClimateState()
         end
         local k = self.AGPKind
-        if (k == "fusion" or k == "turbine" or k == "terraformer" or k == "plant" or k == "gravity") and name == "On" then self.AGPWantOn = v ~= 0 end
+        if (k == "fusion" or k == "turbine" or k == "terraformer" or k == "plant" or k == "gravity" or k == "heavywater" or k == "fuelcell") and name == "On" then self.AGPWantOn = v ~= 0 end
+        if k == "compressor" and name == "Nitrogen" then self:SetCompressorGas(v ~= 0 and "nitrogen" or "oxygen") end
         if k == "terraformer" and name == "Strength" then self.AGPStrength = math.Clamp(v, 0, 4) end
         if k == "gravity" then
             if name == "Radius" and v > 0 then self.AGPRadius = math.Clamp(v, 50, 3000) end
@@ -436,10 +459,10 @@ if SERVER then
         end
     end
 
-    -- AGP 2026-11-08: a node linked anyone's part that touched it or stood on it, so a player could drain other players'
-    -- ZPMs with a node. It takes only parts its owner may use: prop protection (CPPI) when there is one, else parts of
-    -- the same owner; an admin's node any. Owner: CPPI, else the spawner (sandbox SetCreator / Ascension Gates' "Owner").
-    -- Where no owner is known on one side (single player, map parts) nothing is protected, as before.
+    -- AGP: a node linked anyone's part that touched it or stood on it, so a player could drain other players' ZPMs with
+    -- a node. It takes only parts its owner may use: prop protection (CPPI) when there is one, else parts of the same
+    -- owner; an admin's node any. CPPI, else the spawner (sandbox SetCreator / Ascension Gates' "Owner"). Where no owner
+    -- is known on one side (single player, map parts) nothing is protected, as before.
     local function ownerOf(e)
         if e.CPPIGetOwner then
             local o = e:CPPIGetOwner()
@@ -461,9 +484,34 @@ if SERVER then
         return true
     end
     -- a pasted node belongs to whoever pasted it (the duplicator sets no owner; prop protection addons set their own)
+    -- (code review): a copy carried the original's live links in its table - the Spacebuild air zone (the pasted core
+    -- resized the ORIGINAL's air every second, the copy had none), the RD network id of a node (the copy's node fed the
+    -- original's network), the gravity zone (a pasted regulator never made its own: no gravity). They are rebuilt by
+    -- the part itself, so a copy leaves them behind
+    local RUNTIME = { "AGPSBZone", "AGPZone", "netid", "LSShipCore", "LSShipTime", "AGPClimCore", "AGPClimTime",
+        "AGPClimLoad", "AGPScoopPos", "AGPScoopT", "AGPNextShow", "AGPRDNode" }
+    function ENT:OnEntityCopyTableFinish(data)
+        for _, k in ipairs(RUNTIME) do data[k] = nil end
+    end
     local bridgePaste = ENT.PostEntityPaste
     function ENT:PostEntityPaste(ply, ent, created)
         if self.AGPKind == "node" and IsValid(ply) and ply:IsPlayer() and not IsValid(self:GetCreator()) then self:SetCreator(ply) end
+        -- Initialize made every pasted tank an oxygen tank (skin 0 and an empty oxygen store) before the copy's own
+        -- resource came back: the right skin, and no stray oxygen store
+        if self.AGPKind == "tank" and self.TankIndex and self.TankRes then
+            self:SetSkin(self.TankIndex - 1)
+            self:SetNWString("agp_tank_res", self.TankRes)
+            if self.TankRes ~= "oxygen" and self.AGPRes and self.AGPRes.oxygen then self.AGPRes.oxygen = nil end
+        end
+        -- a pasted closed valve said "open" (Initialize switched the screen on)
+        if self.AGPKind == "pump" then self:SetOn(self.AGPPumpOn ~= false) end
+        -- (copying a full XL cell gave anyone billions of energy - "no"): a copy starts EMPTY. A saved game
+        -- loads with its contents (gmsave pastes with DisablePropCreateEffect set). The copy gets its own tables
+        -- first, so emptying it never empties the original it shared them with
+        if not DisablePropCreateEffect and self.AGPRes and AGP and AGP.Power and AGP.Power.OwnTables then
+            AGP.Power.OwnTables(self)
+            for _, r in pairs(self.AGPRes) do if istable(r) then r.amount = 0 end end
+        end
         if bridgePaste then return bridgePaste(self, ply, ent, created) end
     end
 
@@ -471,7 +519,7 @@ if SERVER then
     function ENT:StartTouch(e)
         if self.AGPKind ~= "node" or not IsValid(e) then return end
         if e:IsPlayer() or e:IsWorld() then return end
-        if not self:AGPMayLink(e) then return end   -- AGP 2026-11-08: (see above)
+        if not self:AGPMayLink(e) then return end   -- AGP: (see above)
         if self.IsNode and self.netid and CAF and CAF.GetAddon then   -- Spacebuild network: link it to this node
             local RD = CAF.GetAddon("Resource Distribution")
             if not RD or e.IsNode or e.AGPRDNode == self then return end
@@ -482,9 +530,9 @@ if SERVER then
             return
         end
         if not (AGP and AGP.Power) then return end
-        if AGP.Power.LinksUsed and not AGP.Power.LinksUsed() then return end   -- AGP 2026-11-08: Automatic mode: links do nothing
+        if AGP.Power.LinksUsed and not AGP.Power.LinksUsed() then return end   -- AGP: Automatic mode: links do nothing
         if not (e.AGPRes and next(e.AGPRes)) and not e.IsAGPPower then return end
-        -- AGP 2026-11-08: linked = both sides name each other (a pasted part may carry a one-sided copy of a link)
+        -- AGP: linked = both sides name each other (a pasted part may carry a one-sided copy of a link)
         if e.AGPLinks and e.AGPLinks[self] and self.AGPLinks and self.AGPLinks[e] then return end
         AGP.Power.Link(self, e)
         self:EmitSound("buttons/button16.wav", 60, 110)
@@ -499,11 +547,23 @@ if SERVER then
         end
     end
 
-    -- AGP 2026-11-08: how much more of a resource this part's network can take (free energy: all of it). The compressor,
-    -- water pump, splitter and ram scoop kept using energy / water while their output was full (the product was lost)
+    -- AGP: how much more of a resource this part's network can take (free energy: all of it). The compressor, water
+    -- pump, splitter and ram scoop kept using energy / water while their output was full (the product was lost)
     function ENT:AGPRoom(res)
         if PowerGrid.Bridge and PowerGrid.Bridge.Free and PowerGrid.Bridge.Free() then return math.huge end
         return math.max(0, (self:GetNetworkCapacity(res) or 0) - (self:GetResource(res) or 0))
+    end
+
+    -- (nothing made nitrogen, the terraformer needs it): the compressor collects "oxygen" or "nitrogen". Nitrogen
+    -- storage is added when nitrogen is chosen; back on oxygen, an empty nitrogen store leaves the part again
+    function ENT:SetCompressorGas(gas)
+        if self.AGPKind ~= "compressor" then return end
+        gas = gas == "nitrogen" and "nitrogen" or "oxygen"
+        self.AGPGas = gas
+        local own = self.AGPRes and self.AGPRes.nitrogen
+        if gas == "nitrogen" and not own then self:AddResource("nitrogen", self.AGPCapacity, 0)
+        elseif gas == "oxygen" and own and own.amount <= 0 then self.AGPRes.nitrogen = nil end
+        if AGP and AGP.Power and AGP.Power.Version then AGP.Power.Version = AGP.Power.Version + 1 end
     end
 
     -- generators: how much they make right now
@@ -552,21 +612,25 @@ if SERVER then
         return wet / n, depth
     end
 
-    -- ======== the life support devices of 2026-11-14 =============================================================
-    -- Numbers (per second; Spacebuild's devices were the reference for what they do, these are our own):
-    --   fusion reactor   1 000 000 energy; 1 heavy water + 45 water (92 % become steam, 8 % come back as water); heat +14 per
-    --                    uncooled second (-8 per cooled one), half output from 80 %, trips at 100 % until it is down to 40 %
-    --   steam turbine    up to 60 steam -> 1000 energy and 1 water each
-    --   hydro generator  20 000 x submerged share (x up to 1.5 deep down) - in Production() above
-    --   terraformer      120 000 energy x strength; 10 oxygen / 10 nitrogen a second from the network (x strength); the planet's air
+    -- ======== the life support devices ============================================================= Numbers (per
+    -- second; Spacebuild's devices were the reference for what they do, these are our own): fusion
+    --   reactor 1 000 000 energy; 1 heavy water + 45 water (92 % become steam, 8 % come back as water); heat +14 per uncooled
+    --                    second (-8 per cooled one), half output from 80 %, trips at 100 % until it is down to 40 % steam
+    --   turbine up to 60 steam -> 1000 energy and 1 water each hydro
+    --   generator 20 000 x submerged share (x up to 1.5 deep down) - in Production() above
+    --   terraformer 120 000 energy x strength; 10 oxygen / 10 nitrogen a second from the network (x strength); the planet's air
     --                    changes 0.02 percent points of each gas a second (x strength), temperatures 0.5 K (x strength) towards 293 K
-    --   hydroponics      S 15, L 60 gas per second: 1 CO2 + 0.4 water + 600 energy -> 1 oxygen; temperature scales it
+    --   hydroponics S 15, L 60 gas per second: 1 CO2 + 0.4 water + 600 energy -> 1 oxygen; temperature scales it
     --   gravity regulator 2000 x (radius / 500)^2 x (0.5 + 1.5 |g - 1|) energy
     local FUSION = { energy = 1000000, coolant = 45, fuel = 1, steam = 0.92, heatUp = 14, heatDown = 8, idle = 5, cold = 20, half = 80, trip = 100, reset = 40 }
     local TURBINE = { steam = 60, energy = 1000 }
     local TERRA = { energy = 120000, gas = 10, pct = 0.02, tempStep = 0.5, o2 = 21, n = 78, co2 = 1, comfort = 293, lo = 283, hi = 303 }
     local PLANT = { water = 0.4, energy = 600 }
-    ENT.FusionConst, ENT.TurbineConst, ENT.TerraConst, ENT.PlantConst = FUSION, TURBINE, TERRA, PLANT
+    -- fuel cell: 2 hydrogen + 1 oxygen -> 2 water + 15 energy per water. The splitter pays 20 energy per water, so
+    -- splitter + fuel cell in a circle always loses energy (no free energy)
+    local FUELCELL = { energy = 15 }
+    local HEAVYWATER = { water = 200, energy = 600000 }   -- per unit of heavy water (600 000 + 200 water, so a reactor nets ~400 000)
+    ENT.FusionConst, ENT.TurbineConst, ENT.TerraConst, ENT.PlantConst, ENT.HeavyWaterConst = FUSION, TURBINE, TERRA, PLANT, HEAVYWATER
 
     -- what the environment API says about a place (AGP.LS.Probe); the older EnvAt answers what it can until that API lands
     function ENT:EnvProbe(pos)
@@ -593,7 +657,9 @@ if SERVER then
         local C = FUSION
         local heat = self.AGPHeat or C.cold
         local fuel = self:GetResource("heavy water") >= C.fuel
-        local room = self:AGPRoom("energy") >= 1
+        -- (code review): it ran with room for 1 energy and burned a full heavy water for it; now it waits until its whole
+        -- output fits (a busy base gets full value from every heavy water)
+        local room = self:AGPRoom("energy") >= C.energy * (heat >= C.half and 0.5 or 1)
         local run = self.AGPWantOn and not self.AGPTripped and fuel and room
         local made, steam, st = 0, 0, 0
         if run then
@@ -690,7 +756,7 @@ if SERVER then
         local st, working = 1, false
         if not self.AGPWantOn or s <= 0 then st = 0
         elseif not terraAllowed() then st = 3
-        elseif not (ls and ls.ChangeGas and ls.PlanetAt) then st = 6
+        elseif not (ls and ls.ChangeGas and ls.PlanetAt) or (ls.Mode and ls.Mode() == 0) then st = 6   -- (+ our LS off)
         elseif not planet then st = 4
         elseif unit <= 0 then st = 7
         elseif self.AGPProgress >= 99.5 and (planet.tLow or t) >= C.lo and (planet.tHigh or t) <= C.hi then st = 2
@@ -717,6 +783,9 @@ if SERVER then
                     if moved > 0 then self:SupplyResource("carbon dioxide", use * moved / pp) end
                 end
                 if (r.h or 0) > 0.5 then ls.ChangeGas(planet, "hydrogen", -pp) end
+                -- (code review): too much oxygen was never taken out, so a full air of 25 % oxygen / 75 % nitrogen left no
+                -- room for nitrogen and it worked (and paid) forever at 99 %; above 23 % it is vented now
+                if (r.o2 or 0) > C.o2 + 2 then ls.ChangeGas(planet, "oxygen", -pp) end
                 if (r.o2 or 0) < C.o2 then give("oxygen", "oxygen") end
                 if (r.n or 0) < C.n then give("nitrogen", "nitrogen") end
                 if ls.SetPlanetTemperature and planet.tLow and planet.tHigh then
@@ -813,14 +882,16 @@ if SERVER then
     end
     function ENT:ThinkGravity()
         local need = self:GravityCost()
-        local on = self.AGPWantOn and self:GetResource("energy") >= need
+        -- with PowerGrid's life support off (Spacebuild's runs) nothing reads the zone: no energy for nothing
+        local lsOff = AGP and AGP.LS and AGP.LS.Mode and AGP.LS.Mode() == 0
+        local on = self.AGPWantOn and not lsOff and self:GetResource("energy") >= need
         if on then self:ConsumeResource("energy", need) end
         local api = self:GravityZone(on)
         self:SetOn(on)
         self:SetNWFloat("agp_out", on and need or 0)
         self:SetNWFloat("agp_grav", self.AGPGrav)
         self:SetNWInt("agp_radius", self.AGPRadius)
-        self:SetNWInt("agp_st", not self.AGPWantOn and 0 or not on and 2 or api and 1 or 3)
+        self:SetNWInt("agp_st", not self.AGPWantOn and 0 or lsOff and 3 or not on and 2 or api and 1 or 3)
         if self.SetWire then
             self:SetWire("Active", on and 1 or 0); self:SetWire("Radius", self.AGPRadius); self:SetWire("Gravity", self.AGPGrav)
             self:SetWire("Energy per second", on and need or 0)
@@ -835,8 +906,8 @@ if SERVER then
                 local have = (self.AGPRes and self.AGPRes[r]) and self.AGPRes[r].amount or self:GetResource(r)
                 if have < self.AGPCapacity then self:SupplyResource(r, self.AGPCapacity - have) end
             end
-            -- refill 10 times a second (owner 2026-10-26: the cache showed 500K and the node beside it 450K - the
-            -- network had used 50K since the last refill a second before); screens and Wire still once a second
+            -- refill 10 times a second (the cache showed 500K and the node beside it 450K - the network had used
+            -- 50K since the last refill a second before); screens and Wire still once a second
             if (self.AGPNextShow or 0) > CurTime() then self:NextThink(CurTime() + 0.1) return true end
             self.AGPNextShow = CurTime() + 1
         elseif k == "lscore" then
@@ -846,7 +917,7 @@ if SERVER then
             local energyNeed = 2000 + 500 * inside
             local o2Need = 5 * inside
             local o2 = self:GetResource("oxygen")
-            if o2 < self.AGPCapacity * 0.5 and self:GetResource("water") >= 20 and self:GetResource("energy") >= 5000 then
+            if self.AGPWantOn and o2 < self.AGPCapacity * 0.5 and self:GetResource("water") >= 20 and self:GetResource("energy") >= 5000 then
                 self:ConsumeResource("water", 20); self:ConsumeResource("energy", 5000)
                 self:SupplyResource("oxygen", 40)
                 o2 = o2 + 40
@@ -854,7 +925,12 @@ if SERVER then
             local ok = self.AGPWantOn and self:GetResource("energy") >= energyNeed and o2 >= o2Need
             if ok then
                 self:ConsumeResource("energy", energyNeed)
-                if o2Need > 0 then self:ConsumeResource("oxygen", o2Need) end
+                if o2Need > 0 then
+                    self:ConsumeResource("oxygen", o2Need)
+                    -- (the cycle must close): the oxygen breathed comes back as carbon dioxide, for the hydroponics
+                    -- (Spacebuild's life support did the same); what the network has no room for is vented
+                    self:SupplyResource("carbon dioxide", o2Need)
+                end
             end
             self:LSSetZone(ok)
             self:LSClimate(ok)
@@ -864,6 +940,7 @@ if SERVER then
             if self.SetWire then
                 self:SetWire("Active", ok and 1 or 0); self:SetWire("Radius", self.Radius)
                 self:SetWire("Ship", self:LSShip() and 1 or 0); self:SetWire("Oxygen", self:GetResource("oxygen"))
+                self:SetWire("Carbon Dioxide", self:GetResource("carbon dioxide"))
                 self:SetWire("Temperature", math.Round((self.LSZoneTemp or self.LSOutside or 293) - K, 1))
                 self:SetWire("Target Temperature", math.Round((self.TargetTemp or 293.15) - K, 1))
                 self:SetWire("Outside Temperature", math.Round((self.LSOutside or 293) - K, 1))
@@ -879,20 +956,29 @@ if SERVER then
             end
             local cost = k == "compressor" and 2000 or 1500
             local made = 0
-            -- AGP 2026-11-08: only as much as the network can still take, and energy only for that (nothing when full)
-            local res = k == "compressor" and "oxygen" or "water"
+            -- AGP: only as much as the network can still take, and energy only for that (nothing when full)
+            local res = k == "compressor" and (self.AGPGas == "nitrogen" and "nitrogen" or "oxygen") or "water"
             local amount = math.min(self.AGPRate, math.floor(self:AGPRoom(res)))
+            -- (the author's list: "makes oxygen from nothing"): in the open air of a planet the compressor takes the
+            -- oxygen out of that planet's air (like the plants take its carbon dioxide); no more than the air still has.
+            -- Without a planet (a map's normal air) or inside a ship it compresses the air around it as before
+            local ls, planet = AGP and AGP.LS, nil
+            if k == "compressor" and can and ls and ls.PlanetAt and ls.ChangeGas and not env.interior then
+                planet = ls.PlanetAt(self:WorldSpaceCenter())
+                if planet and planet.air then amount = math.min(amount, math.floor(planet.air[res == "nitrogen" and "n" or "o2"] or 0)) end
+            end
             if can and amount >= 1 and self:GetResource("energy") >= cost then
                 self:ConsumeResource("energy", math.ceil(cost * amount / self.AGPRate))
                 made = self:SupplyResource(res, amount) or amount
+                if planet and made and made > 0 then ls.ChangeGas(planet, res, -made) end
             end
             self:SetOn(made and made > 0)
             if self.SetWire then self:SetWire("Producing", self:GetOn() and 1 or 0) end
         elseif k == "splitter" then
             -- electrolysis: every unit of water gives a unit of hydrogen and half a unit of oxygen
             local water = math.min(self.AGPRate, self:GetResource("water"))
-            -- AGP 2026-11-08: no more water than the products have room for: while one of them still fits it runs for
-            -- that one (the other one's surplus is vented), with both full it stops and uses nothing
+            -- AGP: no more water than the products have room for: while one of them still fits it runs for that one
+            -- (the other one's surplus is vented), with both full it stops and uses nothing
             water = math.floor(math.min(water, math.max(self:AGPRoom("hydrogen"), self:AGPRoom("oxygen") * 2)))
             local need = 20 * water
             local on = water >= 1 and self:GetResource("energy") >= need
@@ -904,10 +990,38 @@ if SERVER then
             end
             self:SetOn(on)
             if self.SetWire then self:SetWire("Producing", on and 1 or 0) end
+        elseif k == "heavywater" then
+            -- (a player: "how do you get heavy water?" - nothing made it): water + energy -> heavy water. 1 a second
+            -- is what one fusion reactor burns; 600 000 energy for 1 that gives 1 000 000 in the reactor (200 000 netted 800 000 a
+            -- second from water alone, 28 large solar panels)
+            local C = HEAVYWATER
+            local n = math.min(self.AGPRate, math.floor(self:AGPRoom("heavy water")))
+            local on = self.AGPWantOn and n >= 1 and self:GetResource("water") >= C.water * n and self:GetResource("energy") >= C.energy * n
+            if on then
+                self:ConsumeResource("water", C.water * n)
+                self:ConsumeResource("energy", C.energy * n)
+                self:SupplyResource("heavy water", n)
+            end
+            self:SetOn(on)
+            if self.SetWire then self:SetWire("Producing", on and 1 or 0); self:SetWire("Heavy Water per second", on and n or 0) end
+        elseif k == "fuelcell" then
+            -- 2 hydrogen + 1 oxygen -> 2 water + energy; only as much as the network has room for water
+            local h = math.min(self.AGPRate, self:GetResource("hydrogen"), 2 * self:GetResource("oxygen"), self:AGPRoom("water"))
+            h = math.floor(h / 2) * 2
+            local on = self.AGPWantOn and h >= 2
+            local e = 0
+            if on then
+                self:ConsumeResource("hydrogen", h)
+                self:ConsumeResource("oxygen", h / 2)
+                self:SupplyResource("water", h)
+                e = self:SupplyResource("energy", FUELCELL.energy * h) or 0
+            end
+            self:SetOn(on)
+            if self.SetWire then self:SetWire("Producing", on and 1 or 0); self:SetWire("Energy per second", e); self:SetWire("Water per second", on and h or 0) end
         elseif k == "ramscoop" then
             -- only in space; the magnetic field costs energy. A little hydrogen drifts in at rest, the rest comes with
             -- speed towards the mouth. The speed is the distance really travelled since the last check (a velocity read
-            -- once a second missed most of the flight in the 2026-11-06 test; welded, parented or flown, all counts)
+            -- once a second missed most of the flight in the test; welded, parented or flown, all counts)
             local env = AGP and AGP.LS and AGP.LS.EnvAt(self:WorldSpaceCenter(), true)
             local pos, now = self:GetPos(), CurTime()
             local speed = 0
@@ -916,7 +1030,7 @@ if SERVER then
             end
             self.AGPScoopPos, self.AGPScoopT = pos, now
             local rate = 0
-            -- AGP 2026-11-08: the field stays off (no energy) while the network has no room for hydrogen
+            -- AGP: the field stays off (no energy) while the network has no room for hydrogen
             local room = self:AGPRoom("hydrogen")
             if env and env.space and room >= 1 and self:GetResource("energy") >= 600 then
                 rate = math.floor(math.min(self.AGPRate * (0.1 + math.min(speed, 3000) / 1000), room))
@@ -987,7 +1101,7 @@ if CLIENT then
     surface.CreateFont("AGPPowerScreen", { font = "Roboto", size = 26, weight = 700 })
     surface.CreateFont("AGPPowerScreenSmall", { font = "Roboto", size = 20, weight = 500 })
 
-    -- 2026-11-14: status / readings of the life support devices as { label, value, colour } lines (nil for the other parts)
+    -- status / readings of the life support devices as { label, value, colour } lines (nil for the other parts)
     local function kv(str)
         local t = {}
         for key, val in (str or ""):gmatch("([%w]+)=([^;]*)") do t[key] = val end
@@ -1080,7 +1194,7 @@ if CLIENT then
         end
         local info = infoLines(self)
         if info then
-            -- the life support devices of 2026-11-14: status / readings as lines (label left, value right)
+            -- the life support devices: status / readings as lines (label left, value right)
             for i, it in ipairs(info) do
                 local ly = y + 40 + (i - 1) * 24
                 draw.SimpleText(it[1], "AGPPowerScreenSmall", x + 12, ly, Color(170, 190, 215))

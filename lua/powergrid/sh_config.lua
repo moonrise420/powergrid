@@ -52,18 +52,20 @@ PowerGrid.Groups = {
 	{ id = "other", key = "agp_grp_other", name = "Other" },
 }
 PowerGrid.Spawn = PowerGrid.Spawn or {}
-PowerGrid.UnfinishedDevices = { agp_terraformer = true }   -- 2026-11-14: not finished (see notes/ls_devices_handover_2026-11-14.md); remove a class to release it
+-- classes listed here are hidden (not finished);: the terraformer is released (its last failing test was a test mistake);:
+-- the heavy water extractor is released with its own model
+PowerGrid.UnfinishedDevices = {}   -- the fuel cell is released (model checked in the game)
 function PowerGrid.AddSpawn(class, group, order, cmd)
 	if PowerGrid.UnfinishedDevices[class] then return end
 	PowerGrid.Spawn[class] = { group = group or "other", order = order or 500, cmd = cmd }
 end
-for i, c in ipairs({ "agp_solar_small", "agp_solar_large", "agp_wind_turbine", "agp_hydro_generator", "agp_steam_turbine", "agp_fusion_reactor" }) do PowerGrid.AddSpawn(c, "generators", 100 + i) end
+for i, c in ipairs({ "agp_solar_small", "agp_solar_large", "agp_wind_turbine", "agp_hydro_generator", "agp_steam_turbine", "agp_fusion_reactor", "agp_heavy_water_extractor" }) do PowerGrid.AddSpawn(c, "generators", 100 + i) end
 for i, c in ipairs({ "agp_cell_xs", "agp_cell_small", "agp_cell_medium", "agp_cell_large", "agp_cell_xl" }) do PowerGrid.AddSpawn(c, "storage", 100 + i) end
 for i, c in ipairs({ "agp_power_node_xs", "agp_power_node_small", "agp_power_node_medium", "agp_power_node_large", "agp_power_pump" }) do PowerGrid.AddSpawn(c, "network", 100 + i) end
 for i, c in ipairs({ "agp_display_small", "agp_display_large" }) do PowerGrid.AddSpawn(c, "displays", 100 + i) end
 for i, c in ipairs({ "agp_tank_xs", "agp_tank_small", "agp_tank_medium", "agp_tank_large", "agp_tank_xl" }) do PowerGrid.AddSpawn(c, "tanks", 100 + i) end
-for i, c in ipairs({ "agp_ls_core", "agp_suit_dispenser", "agp_air_compressor", "agp_water_pump", "agp_water_splitter", "agp_ram_scoop",
+for i, c in ipairs({ "agp_ls_core", "agp_suit_dispenser", "agp_air_compressor", "agp_water_pump", "agp_water_splitter", "agp_fuel_cell", "agp_ram_scoop",
 	"agp_ls_heater_small", "agp_ls_heater", "agp_ls_heater_large", "agp_ls_heater_xl",
 	"agp_ls_cooler_small", "agp_ls_cooler", "agp_ls_cooler_large", "agp_ls_cooler_xl",
-	-- 2026-11-14: the rest of what Spacebuild's life support had
+	-- the rest of what Spacebuild's life support had
 	"agp_env_probe", "agp_hydroponics_small", "agp_hydroponics_large", "agp_gravity_regulator", "agp_terraformer" }) do PowerGrid.AddSpawn(c, "lifesupport", 100 + i) end

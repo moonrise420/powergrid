@@ -21,18 +21,18 @@ if CLIENT then
             self.Rotor = ClientsideModel("models/agp_power/agp_wind_rotor.mdl")
             if not IsValid(self.Rotor) then return end
             self.Rotor:SetNoDraw(true)
-            -- (2026-11-14: the rotor model's origin was 15.5 beside its hub - the export had centred the bounding box -
-            -- so the hub circled round the axle instead of sitting on it (owner: "its not mounted central"). The model's
-            -- vertices were moved so the hub IS the origin; its stored bounds are those of the old centre, so wide ones here)
+            -- (the rotor model's origin was 15.5 beside its hub - the export had centred the bounding box - so the hub
+            -- circled round the axle instead of sitting on it. The model's vertices were moved so the hub IS the origin;
+            -- its stored bounds are those of the old centre, so wide ones here)
             self.Rotor:SetRenderBounds(Vector(-72, -72, -72), Vector(72, 72, 72))
             self.Spin = 0
         end
         self.Spin = (self.Spin + FrameTime() * (self:GetOn() and 70 or 8)) % 360
-        -- AGP 2026-11-14 (owner: "the propeller of the windrad is not correctly mounted"): the height came from
-        -- OBBMaxs(), the COLLISION box, which is lower than the model since the new models of 2026-11-12 - the hub hung
-        -- under the nacelle. The height now comes from the model's own drawn bounds: the nacelle is its top 10.2 units,
-        -- the axle runs through its middle. Along the axle (the model's X) the hub sits on the nacelle's front face
-        -- (the face is at 11.3, the hub is 6.5 deep on each side of its middle).
+        -- AGP: the height came from OBBMaxs(), the COLLISION box, which is lower than the model since the new
+        -- models - the hub hung under the nacelle. The height now comes from the model's own drawn bounds: the nacelle
+        -- is its top 10.2 units, the axle runs through its middle. Along the axle (the model's X) the hub sits on the
+        -- nacelle's front face (the face is at 11.3, the hub is 6.5 deep on each side of its middle).
+        --
         local a = self:GetAngles()
         a:RotateAroundAxis(a:Forward(), self.Spin)
         local _, top = self:GetModelRenderBounds()

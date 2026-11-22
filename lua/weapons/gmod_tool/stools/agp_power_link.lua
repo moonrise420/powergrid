@@ -65,8 +65,8 @@ local function linkable(e)
     return PowerGrid.Active and AGP.Power.Parts[e] ~= nil or e.IsAGPPower or (e.AGPRes and next(e.AGPRes)) or e.HasRD
 end
 
--- AGP 2026-11-08: in Automatic power mode links do nothing (parts share through welds, constraints and parents); the tool
--- said "Linked N parts" and drew cables anyway. Now it says how Automatic mode works and links nothing
+-- AGP: in Automatic power mode links do nothing (parts share through welds, constraints and parents); the tool said
+-- "Linked N parts" and drew cables anyway. Now it says how Automatic mode works and links nothing
 local function automatic(ply)
     if rd() or not (PowerGrid.Active and AGP.Power.LinksUsed) or AGP.Power.LinksUsed() then return false end
     say(ply, "agp_msg_link_auto", "Automatic power mode: parts share power when they are welded, constrained or parented together - links are not used here (they work in Manual and Mix mode).")
@@ -78,7 +78,7 @@ function TOOL:LeftClick(tr)
     if not IsValid(e) or e:IsPlayer() then return false end
     if CLIENT then return true end
     local ply = self:GetOwner()
-    if automatic(ply) then return false end   -- AGP 2026-11-08
+    if automatic(ply) then return false end   -- AGP
     if not linkable(e) then say(ply, "agp_msg_link_nopower", "This part does not use power.") return false end
     self.Sel = self.Sel or {}
     if self.Sel[e] then   -- clicked again: deselect
@@ -95,7 +95,7 @@ function TOOL:RightClick(tr)
     if not IsValid(target) then return false end
     if CLIENT then return true end
     local ply = self:GetOwner()
-    if automatic(ply) then self.Sel = {}; self:SendSel() return false end   -- AGP 2026-11-08
+    if automatic(ply) then self.Sel = {}; self:SendSel() return false end   -- AGP
     if not self.Sel or not next(self.Sel) then say(ply, "agp_msg_link_none", "Select parts first (left click).") return false end
     local R = rd()
     local n = 0

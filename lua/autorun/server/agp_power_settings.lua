@@ -36,7 +36,7 @@ local function sendState(p)
     net.WriteUInt(AGP and AGP.LS and #AGP.LS.Planets or 0, 8)
     net.WriteBool(get("agp_allow_infinite_power") == 1)
     net.WriteBool(get("agp_zpm_overload") == 1)
-    -- 2026-11-14: what runs here (0 nothing, 1 full space simulation, 2 water only) and the new life support settings
+    -- what runs here (0 nothing, 1 full space simulation, 2 water only) and the new life support settings
     net.WriteUInt(AGP and AGP.LS and AGP.LS.Mode and AGP.LS.Mode() or 0, 2)
     net.WriteBool(get("agp_ls_water") == 1)
     net.WriteBool(get("agp_ls_prop_gravity") == 1)

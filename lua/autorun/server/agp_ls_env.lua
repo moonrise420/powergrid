@@ -1,13 +1,13 @@
 -- PowerGrid: AGP Life Support - environments + space suit (used when the Spacebuild gamemode is not running).
 --   agp_ls_space 0 = off, 1 = space maps only (default), 2 = every map (outside ships/bubbles is vacuum)
---   agp_ls_water 1 (default) = where the space simulation is off, the suit still runs in a "water only" form (2026-11-14)
--- Space maps describe their planets with logic_case entities ("planet" / "planet2" / "cube", the Spacebuild format):
--- radius, gravity, atmosphere, temperatures (Kelvin), gas mix. Outside a planet is space: vacuum, -270 C, no gravity.
--- Inside a Life Support Core's area (the whole StarCore ship or a bubble) it is breathable, 20 C, normal gravity.
--- The suit (air / energy / coolant, 0..100) drains where you could not survive and hurts at 0. Air refills by itself
--- in breathable air; the Suit Dispenser refills everything.
+--   agp_ls_water 1 (default) = where the space simulation is off, the suit still runs in a "water only" form Space maps
+-- describe their planets with logic_case entities ("planet" / "planet2" / "cube", the Spacebuild format): radius,
+-- gravity, atmosphere, temperatures (Kelvin), gas mix. Outside a planet is space: vacuum, -270 C, no gravity. Inside
+-- a Life Support Core's area (the whole StarCore ship or a bubble) it is breathable, 20 C, normal gravity. The
+-- suit (air / energy / coolant, 0..100) drains where you could not survive and hurts at 0. Air refills by itself in
+-- breathable air; the Suit Dispenser refills everything.
 --
--- API for devices (2026-11-14, names fixed - the devices code against exactly these):
+-- API for devices (names fixed - the devices code against exactly these):
 --   AGP.LS.PlanetAt(pos)                      -> planet table or nil (the smallest planet / cube environment around pos)
 --   AGP.LS.ChangeGas(planet, gas, amount)     gas = "o2" | "co2" | "n" | "h" (also "oxygen" ...); amount > 0 adds (into free
 --                                             air space only), < 0 takes; returns what was really moved (signed like amount)
@@ -29,8 +29,8 @@ local cvWater = CreateConVar("agp_ls_water", "1", FLAGS, "PowerGrid life support
 local cvPressure = CreateConVar("agp_ls_pressure", "1", FLAGS, "PowerGrid life support: 1 = planets with a pressure above 1.5 crush (suit air, then damage)", 0, 1)
 local cvStars = CreateConVar("agp_ls_stars", "1", FLAGS, "PowerGrid life support: 1 = star heat zones, sunburn and the kill zone", 0, 1)
 local cvGasUse = CreateConVar("agp_ls_gas_use", "1", FLAGS, "PowerGrid life support: 1 = breathing uses up the oxygen of a planet (only small ones notice)", 0, 1)
--- The new rules (water, pressure, stars, gas use, noclip 1, prop gravity) are ON by default since their game tests passed (2026-11-14,
--- suites lsenv_* / lsenv_mix): without Spacebuild ours behaves like Spacebuild out of the box; with Spacebuild's life support
+-- The new rules (water, pressure, stars, gas use, noclip 1, prop gravity) are ON by default since their game tests passed (suites
+-- lsenv_* / lsenv_mix): without Spacebuild ours behaves like Spacebuild out of the box; with Spacebuild's life support
 -- running (and agp_ls_backend 0) none of them runs (LS.SpacebuildLSRuns). Spacebuild's own default for noclip is 1.
 -- noclip in space (Spacebuild: SB_NoClip / SB_PlanetNoClipOnly / SB_AdminSpaceNoclip / SB_SuperAdminSpaceNoclip, all 1 out of the box)
 --   0 = free everywhere, 1 = in space only admins and superadmins (Spacebuild's default), 2 = only superadmins, 3 = nobody
@@ -69,11 +69,11 @@ function LS.CAFLifeSupportRuns()
     return ls ~= nil and ls.GetStatus ~= nil and ls.GetStatus() == true
 end
 
--- 2026-11-14, owner: "get also rid as soon as possible of spacebuild and the life envirroument things mixing up with ours".
 -- THE one answer to "does Spacebuild's own life support run?" (its gamemode - GM.SPACEBUILD -, CAF's Spacebuild addon on a
--- planet map, or CAF's Life Support addon, which runs on every map). While it runs and agp_ls_backend is 0, nothing of ours runs:
--- no suit, no countdown, no HUD, no water rule, no prop gravity, no noclip rule, no planet colours.
--- LS.SBOverride (true / false) lets the self-test answer for a run (the Spacebuild-free branch; nil = really ask).
+-- planet map, or CAF's Life Support addon, which runs on every map). While it runs and agp_ls_backend is 0, nothing of
+-- ours runs: no suit, no countdown, no HUD, no water rule, no prop gravity, no noclip rule, no planet colours. LS.SBOverride
+-- (true / false) lets the self-test answer for a run (the Spacebuild-free branch; nil = really
+-- ask).
 function LS.SpacebuildLSRuns()
     if LS.SBOverride ~= nil then return LS.SBOverride end
     if GAMEMODE and (GAMEMODE.IsSpacebuildDerived or GAMEMODE.IsSpaceBuildDerived or GAMEMODE.SPACEBUILD) then return true end
@@ -88,7 +88,7 @@ end
 function LS.Mode()
     if not cvBackend:GetBool() and LS.SpacebuildLSRuns() then return 0 end
     -- nothing before the map's planets were read (1 s after the map start): CAF starts its addons in that second, so ours
-    -- never runs a first second beside Spacebuild's (2026-11-14)
+    -- never runs a first second beside Spacebuild's
     if not LS.Ready then return 0 end
     local m = cvSpace:GetInt()
     if m == 2 or (m == 1 and #LS.Planets > 0) then return 1 end
@@ -101,7 +101,7 @@ function LS.Active() return LS.Mode() == 1 end
 
 -- read the planets while the map spawns its entities
 local pending = {}
-LS.PendingCases = pending   -- AGP 2026-11-08: (the self-test takes its test planet out of it again)
+LS.PendingCases = pending   -- AGP: (the self-test takes its test planet out of it again)
 hook.Add("EntityKeyValue", "AGP.LS.Planets", function(ent, key, value)
     if ent:GetClass() ~= "logic_case" then return end
     pending[ent] = pending[ent] or {}
@@ -110,10 +110,10 @@ end)
 
 local function num(v, d) return tonumber(v) or d end
 
--- AGP 2026-11-08: a map cleanup spawns the map's logic_case entities anew (their key values arrive again) while the
--- removed ones stayed in `pending`: every planet was listed twice after a cleanup (the old one at its saved origin).
--- One entry per map entity now (same key values = the same entity of the map): the live one wins and the removed one
--- is dropped; a removed one is only used when nothing live replaced it (as before)
+-- AGP: a map cleanup spawns the map's logic_case entities anew (their key values arrive again) while the removed
+-- ones stayed in `pending`: every planet was listed twice after a cleanup (the old one at its saved origin). One
+-- entry per map entity now (same key values = the same entity of the map): the live one wins and the removed one is
+-- dropped; a removed one is only used when nothing live replaced it (as before)
 local function samePlanetKey(kv)
     return table.concat({ kv.hammerid or "", kv.case01 or "", kv.origin or "", kv.case02 or "", kv.targetname or "" }, "|")
 end
@@ -168,7 +168,7 @@ local function recompute(p)
         p.o2, p.co2, p.n, p.h = 0, 0, 0, 0
     end
     local was = p.breathable
-    -- (a tiny tolerance: 10 % of the map is 9.9999999999 after amount / max * 100 - Endgame in sb_gooniverse_v4 was 'no air' for that, 2026-11-14)
+    -- (a tiny tolerance: 10 % of the map is 9.9999999999 after amount / max * 100 - Endgame in sb_gooniverse_v4 was 'no air' for that)
     p.breathable = p.o2 >= 9.9999 and p.atmosphere > 0.2 and p.pressure > 0.2
     return was ~= nil and was ~= p.breathable
 end
@@ -218,7 +218,7 @@ function LS.ReadPlanets()
     LS.Planets, LS.Stars, LS.Trees, LS.FX = {}, {}, {}, {}
     LS.GravZones = {}
     LS.Epoch = LS.Epoch + 1
-    dropReplaced()   -- AGP 2026-11-08
+    dropReplaced()   -- AGP
     local colors, blooms = {}, {}
     local list = {}
     for ent, kv in pairs(pending) do
@@ -295,10 +295,14 @@ hook.Add("PostCleanupMap", "AGP.LS.Planets", function() timer.Simple(1, LS.ReadP
 -- optional gravity, atmosphere, pressure, tLow, tHigh, o2, co2, n, h (percent), name, sunburn. It joins the planets: the
 -- same rules (suit, gas, gravity of props). Returns the planet table; remove it with LS.RemovePlanet.
 function LS.AddPlanet(f)
-    local p = { kind = f.cube and "cube" or "planet2", cube = f.cube == true, pos = f.pos, radius = f.radius, gravity = f.gravity or 1,
-        atmosphere = f.atmosphere or 1, pressure = f.pressure or 1, tLow = f.tLow or 288, tHigh = f.tHigh or f.tLow or 288,
+    -- a planet without a place or size broke every environment check after it (162 errors a test run)
+    if not (istable(f) and isvector(f.pos) and isnumber(f.radius) and f.radius > 0) then return nil end
+    -- (numbers given as text broke the checks the same way: everything through tonumber)
+    local tLow = tonumber(f.tLow) or 288
+    local p = { kind = f.cube and "cube" or "planet2", cube = f.cube == true, pos = f.pos, radius = f.radius, gravity = tonumber(f.gravity) or 1,
+        atmosphere = tonumber(f.atmosphere) or 1, pressure = tonumber(f.pressure) or 1, tLow = tLow, tHigh = tonumber(f.tHigh) or tLow,
         name = f.name or "Environment", sunburn = f.sunburn == true, unstable = false, flags = 0 }
-    initAir(p, f.o2 or 21, f.co2 or 0, f.n or 78, f.h or 0)
+    initAir(p, tonumber(f.o2) or 21, tonumber(f.co2) or 0, tonumber(f.n) or 78, tonumber(f.h) or 0)
     recompute(p)
     p.o2Start = p.o2
     LS.Planets[#LS.Planets + 1] = p
@@ -538,12 +542,12 @@ local function sync(p, s, env, drain, airOK, wet, mode)
     p:SetNWFloat("agp_energy", s.energy)
     p:SetNWFloat("agp_coolant", s.coolant)
     p:SetNWString("agp_env", env.name or "")
-    -- 2026-11-14: "ok" is whether you can breathe right now: a head under water is no good air, whatever the place is
+    -- "ok" is whether you can breathe right now: a head under water is no good air, whatever the place is
     p:SetNWBool("agp_env_ok", airOK)
-    p:SetNWInt("agp_env_temp", math.floor((env.temp or 293) - KELVIN + 0.5))   -- (rounded: 293 K showed as 19 C, 2026-11-14)
+    p:SetNWInt("agp_env_temp", math.floor((env.temp or 293) - KELVIN + 0.5))   -- (rounded: 293 K showed as 19 C)
     p:SetNWBool("agp_ls_on", true)
-    -- for the HUD's place line (2026-11-14): 1 = full simulation, 2 = water only; wet = head under water; the air and
-    -- pressure and gravity of the place (percent / pressure / g)
+    -- for the HUD's place line: 1 = full simulation, 2 = water only; wet = head under water; the air and pressure and
+    -- gravity of the place (percent / pressure / g)
     p:SetNWInt("agp_ls_mode", mode)
     p:SetNWBool("agp_wet", wet)
     p:SetNWFloat("agp_env_grav", env.gravity or 1)
@@ -598,12 +602,12 @@ local function suitTick(p, mode, dt)
         return shielded
     end
     -- breathing: air drains where the air is not breathable (or under water), refills where it is
-    -- AGP 2026-11-14: owner "in our ships when entering water i should have and keep air.... the air countdown is
-    -- counting down": a player in a sealed ship breathes ship air under water. Asked through a hook so PowerGrid
-    -- needs no ascension_gates (AGP.LS.PlayerSealed, see agp_ship_shield.lua). The same in space and in bad air:
-    -- the pilot of a small sealed ship saw the countdown run there too (display only, pilots take no damage, but
-    -- they stepped out with an empty suit) - asked the owner 2026-11-14, no objection. NOT aboard a ship that has
-    -- its own life support and has it switched off (env.interior: the Ha'tak's deliberate "no air on board").
+    -- AGP:: a player in a sealed ship breathes ship air under water. Asked through a hook so PowerGrid needs no
+    -- ascension_gates (AGP.LS.PlayerSealed, see agp_ship_shield.lua). The same in space and in bad air: the
+    -- pilot of a small sealed ship saw the countdown run there too (display only, pilots take no damage, but
+    -- they stepped out with an empty suit) - asked, no objection. NOT aboard a ship that has its own life
+    -- support and has it switched off (env.interior: the Ha'tak's deliberate "no air on board").
+    --
     local sealed = (wet or not env.breathable) and (env.breathable or not env.interior)
         and hook.Run("AGP.LS.PlayerSealed", p) == true
     local airOK = sealed or (env.breathable and not wet)
@@ -689,7 +693,7 @@ local function suitTick(p, mode, dt)
     sync(p, s, env, drain, airOK, wet, mode)
 end
 
--- noclip in space (2026-11-14; Spacebuild's three rules, one setting): who may be in noclip where there is no planet
+-- noclip in space (Spacebuild's three rules, one setting): who may be in noclip where there is no planet
 local function noclipAllowed(p)
     local m = cvNoclip:GetInt()
     if m <= 0 then return true end
@@ -814,10 +818,10 @@ hook.Add("StarGate.Dial", "AGP.LS.GateReport", function(gate, target)
     net.Send(recv)
 end)
 
--- 2026-11-15 (owner: "underwater in our ships we have also sauerstoff?"): a StarCore ship with a running Life Support Core
--- aboard is closed: whoever is inside it (in a seat or standing in it) breathes ship air under water, like in our sealed
--- Ascension Gates ships (AGP.LS.PlayerSealed, agp_ship_shield.lua) and SpaceGrid hulls. A core without a ship (a bubble)
--- stays open to water. Also keeps the engine's own drowning off those players.
+-- a StarCore ship with a running Life Support Core aboard is closed: whoever is inside it (in a seat or standing in it)
+-- breathes ship air under water, like in our sealed Ascension Gates ships (AGP.LS.PlayerSealed, agp_ship_shield.lua) and
+-- SpaceGrid hulls. A core without a ship (a bubble) stays open to water. Also keeps the engine's own drowning off those
+-- players.
 function LS.InCoreShip(ply)
     if not IsValid(ply) then return false end
     local pos = ply:EyePos()

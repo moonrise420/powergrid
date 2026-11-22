@@ -34,8 +34,8 @@ function AGP.Units.Distance(u, short)
     return math.Round(u * 0.0254) .. (short and "" or " m")
 end
 function AGP.Units.DistanceName() return ({ "m", "ft", "u" })[AGP.Units.DistanceMode()] end
--- speed: game units per second -> text in the same unit choice (metres -> km/h, feet -> mph, units -> u/s); 2026-11-15:
--- the ship HUDs used 1.905 cm per unit (25 % too low) and the Glider asked for this function before it existed
+-- speed: game units per second -> text in the same unit choice (metres -> km/h, feet -> mph, units -> u/s);: the ship
+-- HUDs used 1.905 cm per unit (25 % too low) and the Glider asked for this function before it existed
 function AGP.Units.Speed(ups)
     local m = AGP.Units.DistanceMode()
     if m == 2 then return math.floor(ups * 3600 / 63360) .. " mph" end
@@ -49,23 +49,23 @@ function AGP.Units.Gravity(g)
     return string.format("%.1f g", g)
 end
 
--- 2026-11-14 restyle, second round. Owner: "our air and so display what we did new in the bottom its to fat and high up.....
--- do it beautifuly aestetic decent in the bottom not so wide up and also narrow and not so a fat bright thing maybe even
--- glassy see threw but fitting our style....". So: a slim, quiet, see-through strip right at the bottom edge (centre, between
--- GMod's health and ammo boxes, on their baseline), thin 2 px gauge lines in muted blue / orange / teal, tiny own-drawn glyphs
--- instead of labels, and only what matters: the percent only for a gauge that drains or is low, the countdown only while it
--- runs. Three looks, client convar agp_ls_hud_style:
---   1 = one line: place / temperature / air state as one small quiet text, then three glyph + hair line + numbers
---   2 = the same with three hair-thin arcs
---   3 = minimal: three short lines and nothing else (numbers sit above their line, only when they matter)
--- Shown / hidden exactly as before (life support on, something matters), same units and language keys. Values glide, the
--- strip fades in / out, a low gauge (< 20 %) brightens slowly and calmly, red only at empty. No blur (a real blur of the
--- background needs a render target every frame: not free, so plain transparency). Everything is sized from the screen height
--- (text never below 11 px). Cheap: no tables / Colors made per frame, texts measured twice a second, fonts only when the
--- resolution changes.
---   4 = classic: the first restyle of the same day (chips + segment bars), moved down to the same bottom edge
--- (2026-11-14 owner: "can we have settings so the player can choose? i would do first version but moved down ... new 1-3 and
--- the player can choose what with default new 2" - the choice is in the PowerGrid settings menu)
+-- restyle, second round.. So: a slim, quiet, see-through strip right at the bottom edge (centre, between GMod's health and
+-- ammo boxes, on their baseline), thin 2 px gauge lines in muted blue / orange / teal, tiny own-drawn glyphs instead of
+-- labels, and only what matters: the percent only for a gauge that drains or is low, the countdown only while it runs. Three
+-- looks, client convar agp_ls_hud_style: 1 = one line: place / temperature / air state as one small quiet text, then three
+-- glyph + hair line + numbers 2 = the same with three hair-thin arcs 3 = minimal: three short lines and nothing else
+-- (numbers sit above their line, only when they
+--   matter) Shown / hidden exactly as before (life support on, something matters), same units and language keys.
+--   Values glide, the strip fades in / out,
+--   a low gauge (< 20 %) brightens slowly and calmly, red only at empty. No blur (a real blur of the
+-- background needs a render target every frame: not free, so plain transparency). Everything is sized from the screen
+-- height (text never below 11 px). Cheap: no tables / Colors made per frame, texts measured twice a second, fonts only
+-- when the resolution changes. 4 = classic: the first restyle of the same day (chips + segment bars), moved down to the same
+-- bottom edge (the choice is in the PowerGrid settings menu)
+--
+--
+--
+--
 local cvStyle = CreateClientConVar("agp_ls_hud_style", "2", true, false, "PowerGrid suit HUD look: 1 = one line, 2 = hair arcs, 3 = minimal, 4 = classic", 1, 4)
 
 local KEYS = { "air", "energy", "coolant" }

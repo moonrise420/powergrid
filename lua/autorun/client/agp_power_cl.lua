@@ -2,8 +2,8 @@
 local cvCables = CreateClientConVar("agp_power_cables", "1", true, false, "Ascension Gates: show PowerGrid cables")
 local links = {}
 
--- AGP 2026-11-08: the list holds entity numbers, looked up while drawing. It held the entities as read, and a part
--- this client did not have yet (outside its view / PVS, or still loading after joining) came as NULL and stayed NULL
+-- AGP: the list holds entity numbers, looked up while drawing. It held the entities as read, and a part this
+-- client did not have yet (outside its view / PVS, or still loading after joining) came as NULL and stayed NULL
 -- until the next link change: no cable to it. A joining player also asks for the list once the map is loaded.
 net.Receive("agp_power_links", function()
     links = {}
@@ -14,8 +14,8 @@ hook.Add("InitPostEntity", "AGP.Power.Cables", function()
     net.SendToServer()
 end)
 
--- AGP 2026-11-09 (owner's wish): the cables of your parts can be hidden from the other players too. The setting goes
--- to the server with your player info; the server leaves those cables out of the others' lists. A change asks the
+-- AGP (the author's wish): the cables of your parts can be hidden from the other players too. The setting goes to
+-- the server with your player info; the server leaves those cables out of the others' lists. A change asks the
 -- server to send everyone a new list.
 CreateClientConVar("agp_power_cables_share", "1", true, true, "Ascension Gates: other players see the cables of your parts (0 = they do not)", 0, 1)
 cvars.AddChangeCallback("agp_power_cables_share", function()

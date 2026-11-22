@@ -8,8 +8,8 @@ PowerGrid.Bridge = B
 
 local function net() return PowerGrid.Active and AGP.Power end
 
--- AGP 2026-11-08: "Off (free energy)" (agp_power_mode 0, or no network at all: neither ours nor Spacebuild's carries
--- the resources - what the settings page shows as "Off: free energy.") gave every part 0 of everything, so the Life
+-- AGP: "Off (free energy)" (agp_power_mode 0, or no network at all: neither ours nor Spacebuild's carries the
+-- resources - what the settings page shows as "Off: free energy.") gave every part 0 of everything, so the Life
 -- Support Core never came on, heaters / coolers said "no energy" and the compressor, water pump, splitter and suit
 -- dispenser did nothing. Free means: every part has as much as it asks for, and whatever it makes is taken.
 -- (Ascension Gates' entities are free then by themselves: without a network their energy checks are skipped.)
@@ -29,7 +29,7 @@ function B.GetResource(self, res, default)
 	if P then return P.GetResource(self, res, default) end
 	local RD = PowerGrid.RD3()
 	if RD then return RD.GetResourceAmount(self, res) or default or 0 end
-	if free() then return FREE end   -- AGP 2026-11-08
+	if free() then return FREE end   -- AGP
 	return default or 0
 end
 
@@ -43,7 +43,7 @@ function B.ConsumeResource(self, res, amount)
 		if take > 0 then RD.ConsumeResource(self, res, take) end
 		return take
 	end
-	if free() then return math.max(0, amount or 0) end   -- AGP 2026-11-08: all of it
+	if free() then return math.max(0, amount or 0) end   -- AGP: all of it
 	return 0
 end
 
@@ -57,7 +57,7 @@ function B.SupplyResource(self, res, amount)
 		if give > 0 then RD.SupplyResource(self, res, give) end
 		return give
 	end
-	if free() then return math.max(0, amount or 0) end   -- AGP 2026-11-08: all of it is taken
+	if free() then return math.max(0, amount or 0) end   -- AGP: all of it is taken
 	return 0
 end
 
@@ -74,7 +74,7 @@ function B.GetNetworkCapacity(self, res, default)
 	if P then return P.GetNetworkCapacity(self, res, default) end
 	local RD = PowerGrid.RD3()
 	if RD then return RD.GetNetworkCapacity(self, res) or default or 0 end
-	if free() then return FREE end   -- AGP 2026-11-08: (a full bar on the screens)
+	if free() then return FREE end   -- AGP: (a full bar on the screens)
 	return default or 0
 end
 
@@ -115,7 +115,7 @@ function B.PreEntityCopy(self)
 	end
 	local RD = PowerGrid.RD3()
 	if RD and RD.BuildDupeInfo then RD.BuildDupeInfo(self) end
-	-- AGP 2026-11-08: our own links, as they are right now
+	-- AGP: our own links, as they are right now
 	if net() and AGP.Power.StoreLinks then AGP.Power.StoreLinks(self) end
 end
 
@@ -125,7 +125,7 @@ function B.PostEntityPaste(self, ply, ent, created)
 	end
 	local RD = PowerGrid.RD3()
 	if RD and RD.ApplyDupeInfo then RD.ApplyDupeInfo(ent, created) end
-	-- AGP 2026-11-08: the paste's old index -> new entity list, so our links join exactly the new parts
+	-- AGP: the paste's old index -> new entity list, so our links join exactly the new parts
 	if net() and AGP.Power.DupePasted then AGP.Power.DupePasted(created) end
 end
 

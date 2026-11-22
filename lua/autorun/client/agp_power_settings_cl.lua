@@ -46,7 +46,7 @@ local function refresh()
     end
     if IsValid(p.AGPLSStatus) then
         local lsText
-        -- 2026-11-14: say why nothing of ours runs while Spacebuild's own life support does (no two countdowns)
+        -- say why nothing of ours runs while Spacebuild's own life support does (no two countdowns)
         if state.sbLS then lsText = L("agp_ls_now_sb", "Spacebuild's own life support runs here: ours stands back (no second suit, no second countdown). Switch Spacebuild off to use ours.")
         elseif state.lsActive then lsText = L("agp_ls_now_on", "Space simulation is running here (%d planets).", state.planets or 0)
         elseif state.lsMode == 2 then lsText = L("agp_ls_now_water", "Water-only life support is running here: air runs down only under water.")
@@ -150,7 +150,7 @@ local function build(panel)
         b.DoClick = function() set("agp_ls_space", m[1]) end
         panel.AGPSpaceButtons[#panel.AGPSpaceButtons + 1] = b
     end
-    -- 2026-11-14: water on every map, props in space, noclip in space, pressure, stars, breathing (all admin settings)
+    -- water on every map, props in space, noclip in space, pressure, stars, breathing (all admin settings)
     local function adminToggle(field, cvar, stateKey, tipKey, tipText)
         local b = panel:Button("")
         b.DoClick = function() set(cvar, state[stateKey] and 0 or 1) end
@@ -180,7 +180,7 @@ local function build(panel)
         panel.AGPReport:SetTooltip(L("agp_ls_tip_report", "Before you step through a gate: air, temperature and gravity on the other side."))
         panel:CheckBox(L("agp_ls_report_me", "Show gate report (only for you)"), "agp_gate_report_show"):SetTooltip(L("agp_ls_tip_report_me", "Show that report on your screen."))
     end
-    -- the suit display's look (only for you; 2026-11-14 owner: "can we have settings so the player can choose?")
+    -- the suit display's look (only for you)
     local hs = panel:ComboBox(L("agp_ls_hud_style", "Suit display"), "agp_ls_hud_style")
     if AGP.StyleCombo then AGP.StyleCombo(hs) end
     hs:SetTooltip(L("agp_ls_tip_hud_style", "How your suit's air, energy and coolant are shown at the bottom of the screen (only for you)."))

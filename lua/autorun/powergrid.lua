@@ -1,7 +1,7 @@
 -- PowerGrid: resource network (energy, oxygen, water ...) and life support for any addon. Loader.
 -- Works alone; with Spacebuild/CAF installed it can use Resource Distribution instead (setting "backend").
 PowerGrid = PowerGrid or {}
-PowerGrid.Version = "1.0.0" -- numbers first: the update check compares them with the GitHub release tag
+PowerGrid.Version = "1.0.1" -- numbers first: the update check compares them with the GitHub release tag
 AGP = AGP or {}                           -- the network keeps its first name (AGP.Power, AGP.LS) for saves and other addons
 
 -- our own links: fill in once they exist (empty = no button)

@@ -9,9 +9,48 @@ hook.Add("AddToolMenuTabs", "PowerGrid.Tabs", function()
 	spawnmenu.AddToolCategory("SpaceGrid", "Settings", " " .. L("agp_cat_settings", "Settings"))
 end)
 
+-- our tool tabs side by side. GMod sorts tool tabs by their inner names (Stargate, SpaceGrid = PowerGrid's,
+-- SpaceGridKit = SpaceGrid's), other addons' tabs came between them. When the tool menu is built, our tabs are
+-- moved together in this order, at the place of the first of them. Only the shown tabs move: GMod's own list (tab
+-- numbers) stays as it is. The same code is in Ascension Gates, PowerGrid and SpaceGrid (each works alone); the
+-- first one loaded does it, once.
+hook.Add("PopulateToolMenu", "AGP.OurTabOrder", function()
+	local tm = vgui.GetControlTable("ToolMenu")
+	if not tm or tm.AGPTabOrder then return end
+	tm.AGPTabOrder = true
+	local OUR = { Stargate = 1, SpaceGridKit = 2, SpaceGrid = 3 }
+	local load = tm.LoadTools
+	tm.LoadTools = function(self, ...)
+		local r = load(self, ...)
+		local rank = {}
+		for i, t in ipairs(spawnmenu.GetTools()) do
+			local p = self.ToolPanels and self.ToolPanels[i]
+			if OUR[t.Name] and IsValid(p) then rank[p] = OUR[t.Name] end
+		end
+		local items, ours, first = self.Items or {}, {}, nil
+		for j, it in ipairs(items) do
+			if rank[it.Panel] then ours[#ours + 1] = it; first = first or j end
+		end
+		if #ours < 2 then return r end
+		table.sort(ours, function(a, b) return rank[a.Panel] < rank[b.Panel] end)
+		local new = {}
+		for j, it in ipairs(items) do
+			if j == first then for _, o in ipairs(ours) do new[#new + 1] = o end end
+			if not rank[it.Panel] then new[#new + 1] = it end
+		end
+		for j = 1, #new do items[j] = new[j] end
+		local sc = self.tabScroller
+		if IsValid(sc) and sc.Panels then
+			for j = 1, #new do sc.Panels[j] = new[j].Tab end
+			sc:InvalidateLayout(true)
+		end
+		return r
+	end
+end)
+
 -- a part's menu icon: materials/entities/<class>.png; parts other addons add may only have the older kind
 -- (materials/vgui/entities/<class>.vmt) - without this the menu showed the purple-black missing texture for them
--- (2026-11-12: the black hole power core and the ZPM analyser)
+-- (the black hole power core and the ZPM analyser)
 function PowerGrid.IconOf(class)
 	if file.Exists("materials/entities/" .. class .. ".png", "GAME") then return "entities/" .. class .. ".png" end
 	if file.Exists("materials/vgui/entities/" .. class .. ".vmt", "GAME") then return "vgui/entities/" .. class end
@@ -45,7 +84,7 @@ hook.Add("PopulatePowerGrid", "PowerGrid.Spawn", function(content, tree)
 						nicename = (p.t.AGPNameKey and L(p.t.AGPNameKey, p.t.PrintName)) or p.t.PrintName or p.class,
 						spawnname = p.class,
 						material = PowerGrid.IconOf(p.class),
-						admin = p.t.AdminOnly or p.t.AGPAdminOnly, -- AGP 2026-11-08: + AGPAdminOnly (the Black Hole Cache had no admin badge)
+						admin = p.t.AdminOnly or p.t.AGPAdminOnly, -- AGP: + AGPAdminOnly (the Black Hole Cache had no admin badge)
 					})
 					if p.cmd and IsValid(icon) then   -- spawned by its own addon's command
 						icon.DoClick = function()
@@ -69,7 +108,7 @@ spawnmenu.AddCreationTab("PowerGrid", function()
 	local ctrl = vgui.Create("SpawnmenuContentPanel")
 	ctrl:CallPopulateHook("PopulatePowerGrid")
 	return ctrl
-end, "icon16/lightning.png", 60)
+end, "icon16/lightning.png", 60.03)   -- (Ascension Gates 60.01, SpaceGrid 60.02, PowerGrid 60.03 - right after the Vehicles tab, and after other addons' 60 such as VJ Base and Pills, so ours stay side by side)
 
 -- update check (GitHub releases), only on click ---------------------------------------------------------------
 local function nums(v)

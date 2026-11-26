@@ -7,7 +7,7 @@ PowerGrid is a resource network for Garry's Mod. Place a generator, a cell and a
 ## Install
 **Steam Workshop (easiest):** subscribe [there](https://steamcommunity.com/sharedfiles/filedetails/?id=3840679072).
 
-**By hand:** download `powergrid-1.0.1.zip` from [Releases](../../releases/latest) and unpack it into
+**By hand:** download `powergrid-1.0.2.zip` from [Releases](../../releases/latest) and unpack it into
 `garrysmod/addons/` (you get the folder `garrysmod/addons/powergrid`).
 
 ## Bugs, problems and wishes

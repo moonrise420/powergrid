@@ -462,6 +462,12 @@ do
     end
 end
 
+-- (bug hunt): a Life Support Core's area was named in English for everybody; the server sends the key now
+function AGP.LSPlaceName(name)
+    if name == "Space" then return PowerGrid.L("agp_ls_space_name", "Space") end
+    if string.sub(name, 1, 8) == "agp_ent_" then return PowerGrid.L(name, "Life Support Core") end
+    return name
+end
 hook.Add("HUDPaint", "AGP.LS.Hud", function()
     local p = LocalPlayer()
     local want = false
@@ -473,7 +479,7 @@ hook.Add("HUDPaint", "AGP.LS.Hud", function()
             raw[1], raw[2], raw[3] = air, energy, coolant
             S.ok, S.temp = ok, temp
             local name = p:GetNWString("agp_env", "")
-            if name == "Space" then name = PowerGrid.L("agp_ls_space_name", "Space") end
+            name = AGP.LSPlaceName(name)
             if name == "" then name = PowerGrid.L("agp_ls_hud_suit", "Space suit") end
             if name ~= T.name then T.name = name L.next = 0 end
             for i = 1, 3 do cdt[i] = p:GetNWInt("agp_" .. KEYS[i] .. "_t", -1) end
@@ -519,7 +525,7 @@ hook.Add("HUDPaint", "AGP.LS.GateReport", function()
     local a = math.Clamp((9 - (CurTime() - report.t)) * 255, 0, 255)
     local danger = not report.ok or report.temp < -10 or report.temp > 45
     local title = PowerGrid.L("agp_ls_rep_title", "Destination report")
-    local place = (report.name == "Space" and PowerGrid.L("agp_ls_space_name", "Space")) or (report.name ~= "" and report.name) or PowerGrid.L("agp_ls_rep_unknown", "unknown world")
+    local place = (report.name ~= "" and AGP.LSPlaceName(report.name)) or PowerGrid.L("agp_ls_rep_unknown", "unknown world")
     local line1 = report.space and PowerGrid.L("agp_ls_rep_vacuum", "Vacuum (space)") or (report.ok and PowerGrid.L("agp_ls_rep_air", "Breathable atmosphere") or PowerGrid.L("agp_ls_rep_noair", "No breathable air"))
     local line2 = AGP.Units.Temp(report.temp) .. "   ·   " .. PowerGrid.L("agp_ls_rep_gravity", "gravity") .. " " .. AGP.Units.Gravity(report.grav)
     local line3 = danger and PowerGrid.L("agp_ls_rep_danger", "Suit needed - check air, energy and coolant!") or PowerGrid.L("agp_ls_rep_safe", "Safe to go through")

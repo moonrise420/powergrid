@@ -69,33 +69,61 @@ local function show(ent, name, visible)
     if b then ent:ManipulateBoneScale(b, visible and Vector(1, 1, 1) or Vector(0, 0, 0)) end
 end
 
--- looping sounds: fade in while `on`, out when off
-local function loops(ent, on, list)
+-- looping sounds: fade in while the part runs, out when it stops. (bug hunt): they were only started and stopped
+-- while the part was drawn - a machine switched off behind the player's back hummed on, one switched on there was
+-- silent, "Machine sounds" off did nothing until the part was looked at. Now a timer keeps them for every part.
+local looping, motors = setmetatable({}, { __mode = "k" }), setmetatable({}, { __mode = "k" })
+local function loops(ent)
+    looping[ent] = true
+end
+
+local function keepLoops(ent, list)
     ent.AGPSnd = ent.AGPSnd or {}
-    local near = LocalPlayer():GetPos():DistToSqr(ent:GetPos()) < 1200 * 1200
+    local on = (ent.AGPKind == "cache" or ent:GetOn()) and not ent:IsDormant() and cvSound:GetBool()
+        and LocalPlayer():GetPos():DistToSqr(ent:GetPos()) < 1200 * 1200
     for i, d in ipairs(list) do
         local s = ent.AGPSnd[i]
-        if on and near and cvSound:GetBool() then
+        if on then
             if not s then
                 s = CreateSound(ent, d[1])
                 s:SetSoundLevel(62)
                 ent.AGPSnd[i] = s
             end
-            if not s:IsPlaying() then s:PlayEx(0, d[3]) end
-            s:ChangeVolume(d[2], 0.6)
-        elseif s and s:IsPlaying() then
+            local fresh = not s:IsPlaying()
+            if fresh then s:PlayEx(0, d[3]) end
+            if fresh or not ent.AGPSndOn then s:ChangeVolume(d[2], 0.6) end
+        elseif s and ent.AGPSndOn then
             s:FadeOut(0.6)
         end
     end
+    ent.AGPSndOn = on
 end
+
+timer.Create("AGP.Power.Sounds", 0.2, 0, function()
+    if not IsValid(LocalPlayer()) then return end
+    for ent in pairs(looping) do
+        if not IsValid(ent) then looping[ent] = nil
+        elseif SOUNDS[ent.AGPKind] then keepLoops(ent, SOUNDS[ent.AGPKind]) end
+    end
+    for ent in pairs(motors) do
+        local m = IsValid(ent) and ent.AGPMotor
+        if not m then motors[ent] = nil
+        elseif CurTime() - (ent.AGPMotorT or 0) > 0.3 then
+            if m:IsPlaying() then m:FadeOut(0.3) end
+            motors[ent] = nil
+        end
+    end
+end)
+hook.Add("OnEntityCreated", "AGP.Power.Sounds", function(ent)
+    timer.Simple(0, function() if IsValid(ent) and ent.IsAGPPower and SOUNDS[ent.AGPKind] then looping[ent] = true end end)
+end)
 
 local function motor(ent, moving)
     if moving and cvSound:GetBool() and LocalPlayer():GetPos():DistToSqr(ent:GetPos()) < 900 * 900 then
         if not ent.AGPMotor then ent.AGPMotor = CreateSound(ent, MOTOR); ent.AGPMotor:SetSoundLevel(58) end
         if not ent.AGPMotor:IsPlaying() then ent.AGPMotor:PlayEx(0.25, 130) end
         ent.AGPMotorT = CurTime()
-    elseif ent.AGPMotor and ent.AGPMotor:IsPlaying() and CurTime() - (ent.AGPMotorT or 0) > 0.3 then
-        ent.AGPMotor:FadeOut(0.3)
+        motors[ent] = true
     end
 end
 
@@ -339,6 +367,7 @@ end
 
 function AGP.PowerAnimStop(ent)
     for _, s in pairs(ent.AGPSnd or {}) do s:Stop() end
+    ent.AGPSndOn = nil
     if ent.AGPMotor then ent.AGPMotor:Stop() end
 end
 

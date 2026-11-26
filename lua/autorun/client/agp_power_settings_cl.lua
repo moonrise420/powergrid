@@ -65,6 +65,7 @@ local function refresh()
         toggle(p.AGPPressure, state.pressure, L("agp_ls_pressure_on", "Pressure: planets can crush"), L("agp_ls_pressure_off", "Pressure: off"))
         toggle(p.AGPStars, state.stars, L("agp_ls_stars_on", "Stars: heat, sunburn, kill zone"), L("agp_ls_stars_off", "Stars: only cold space"))
         toggle(p.AGPGasUse, state.gasUse, L("agp_ls_gasuse_on", "Breathing uses up planet air"), L("agp_ls_gasuse_off", "Breathing never uses planet air"))
+        toggle(p.AGPSeats, state.seats, L("agp_ls_seats_on", "Seats in space: need life support"), L("agp_ls_seats_off", "Seats in space: always air"))
         for _, b in ipairs(p.AGPNoclipButtons or {}) do
             b:SetText((state.noclip == b.AGPValue and "● " or "○ ") .. b.AGPLabel)
             b:SetEnabled(state.admin == true)
@@ -97,6 +98,7 @@ net.Receive("agp_power_state", function()
     state.stars = net.ReadBool()
     state.gasUse = net.ReadBool()
     state.sbLS = net.ReadBool()
+    state.seats = net.ReadBool()
     refresh()
 end)
 
@@ -169,6 +171,8 @@ local function build(panel)
         b.DoClick = function() set("agp_ls_noclip", m[1]) end
         panel.AGPNoclipButtons[#panel.AGPNoclipButtons + 1] = b
     end
+    -- seats in space need the ship's life support or the suit, admin setting, on by default
+    adminToggle("AGPSeats", "agp_ls_seats", "seats", "agp_ls_tip_seats", "On: in space a player in a seat needs air like on foot, from the ship's life support (a Life Support Core, a sealed ship) or the suit. Off: seats always have air.")
     adminToggle("AGPPressure", "agp_ls_pressure", "pressure", "agp_ls_tip_pressure", "On a planet with a pressure above 1.5 the suit's air is used to cope with it and an empty suit takes crushing damage. Not inside ships or life support areas.")
     adminToggle("AGPStars", "agp_ls_stars", "stars", "agp_ls_tip_stars", "Hot zones round a star, sunburn where the sun shines on you and a deadly zone in its middle. Not inside ships or life support areas.")
     adminToggle("AGPGasUse", "agp_ls_gas_use", "gasUse", "agp_ls_tip_gasuse", "Breathing turns the oxygen of a planet into carbon dioxide. Only a very small environment ever notices; a big planet never runs out.")

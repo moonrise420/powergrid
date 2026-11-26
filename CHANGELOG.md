@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.2
+**Servers**
+- The Connector tool now checks whose part it is. Before, anyone could link your cells into their network and drain them, or remove all your links. Admins can still link anything.
+- Parts placed with the Parts tool belong to whoever placed them, so their cables follow "Others see my cables".
+
+**Fixed**
+- The Parts tool shows a ghost of the part again, and a display's ghost hangs on the wall where it'll go.
+- Machine sounds stop when the machine is switched off or far away, and "Machine sounds" off works right away.
+- The Connector tool's right click doesn't link parts to a crate anymore.
+- A Gravity Regulator works after loading a saved game.
+- Cells, nodes and the other screens show energy first again. A floating screen isn't covered by things behind it.
+- Cables don't hang into the floor, and having lots of devices in view costs less (113 to 188 fps in one test).
+- The suit display and the Environment Probe name a life support area in your own language, and the suit countdown doesn't freeze in noclip.
+- On servers that limit noclip in space, a seat in space now works the same for players and admins (the suit ran for some and not for others).
+
+**Changed**
+- In space, sitting in a seat no longer gives you air by itself. You need the ship's life support or your suit, like on foot. Admins can turn this off with "Seats in space" in the Grid Power settings.
+
 ## 1.0.1
 **New**
 - Heavy Water Extractor (Generators): 200 water + 600 000 energy make 1 heavy water a second, the Fusion Reactor's fuel. Own model with a glowing window and a spinning centrifuge.

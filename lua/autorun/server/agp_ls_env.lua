@@ -2,9 +2,9 @@
 --   agp_ls_space 0 = off, 1 = space maps only (default), 2 = every map (outside ships/bubbles is vacuum)
 --   agp_ls_water 1 (default) = where the space simulation is off, the suit still runs in a "water only" form Space maps
 -- describe their planets with logic_case entities ("planet" / "planet2" / "cube", the Spacebuild format): radius,
--- gravity, atmosphere, temperatures (Kelvin), gas mix. Outside a planet is space: vacuum, -270 C, no gravity. Inside
--- a Life Support Core's area (the whole StarCore ship or a bubble) it is breathable, 20 C, normal gravity. The
--- suit (air / energy / coolant, 0..100) drains where you could not survive and hurts at 0. Air refills by itself in
+-- gravity, atmosphere, temperatures (Kelvin), gas mix. Outside a planet is space: vacuum, -270 C, no gravity. Inside a
+-- Life Support Core's area (the whole StarCore ship or a bubble) it is breathable, 20 C, normal gravity. The suit
+-- (air / energy / coolant, 0..100) drains where you could not survive and hurts at 0. Air refills by itself in
 -- breathable air; the Suit Dispenser refills everything.
 --
 -- API for devices (names fixed - the devices code against exactly these):
@@ -30,11 +30,15 @@ local cvPressure = CreateConVar("agp_ls_pressure", "1", FLAGS, "PowerGrid life s
 local cvStars = CreateConVar("agp_ls_stars", "1", FLAGS, "PowerGrid life support: 1 = star heat zones, sunburn and the kill zone", 0, 1)
 local cvGasUse = CreateConVar("agp_ls_gas_use", "1", FLAGS, "PowerGrid life support: 1 = breathing uses up the oxygen of a planet (only small ones notice)", 0, 1)
 -- The new rules (water, pressure, stars, gas use, noclip 1, prop gravity) are ON by default since their game tests passed (suites
--- lsenv_* / lsenv_mix): without Spacebuild ours behaves like Spacebuild out of the box; with Spacebuild's life support
--- running (and agp_ls_backend 0) none of them runs (LS.SpacebuildLSRuns). Spacebuild's own default for noclip is 1.
--- noclip in space (Spacebuild: SB_NoClip / SB_PlanetNoClipOnly / SB_AdminSpaceNoclip / SB_SuperAdminSpaceNoclip, all 1 out of the box)
---   0 = free everywhere, 1 = in space only admins and superadmins (Spacebuild's default), 2 = only superadmins, 3 = nobody
+-- lsenv_* / lsenv_mix): without Spacebuild ours behaves like Spacebuild out of the box; with Spacebuild's life support running
+-- (and agp_ls_backend 0) none of them runs (LS.SpacebuildLSRuns). Spacebuild's own default for noclip is 1. noclip
+-- in space (Spacebuild: SB_NoClip / SB_PlanetNoClipOnly / SB_AdminSpaceNoclip / SB_SuperAdminSpaceNoclip, all 1 out of the box) 0 =
+--   free everywhere, 1 = in space only admins and superadmins (Spacebuild's default), 2 = only superadmins, 3 = nobody
 local cvNoclip = CreateConVar("agp_ls_noclip", "1", FLAGS, "PowerGrid life support: noclip in space - 0 = free, 1 = admins only, 2 = superadmins only, 3 = nobody", 0, 3)
+-- a player in a seat breathes like one on foot - the ship's life support (a Life Support Core, a sealed ship) or the
+-- suit. Before, a seat in open space always had air (GMod moves a seated player as noclip, the suit skipped him).
+--
+local cvSeats = CreateConVar("agp_ls_seats", "1", FLAGS, "PowerGrid life support: 1 = in space a player in a seat needs air like on foot (ship life support or suit), 0 = seats always have air", 0, 1)
 
 LS.Planets = LS.Planets or {}
 LS.Stars = LS.Stars or {}
@@ -70,10 +74,10 @@ function LS.CAFLifeSupportRuns()
 end
 
 -- THE one answer to "does Spacebuild's own life support run?" (its gamemode - GM.SPACEBUILD -, CAF's Spacebuild addon on a
--- planet map, or CAF's Life Support addon, which runs on every map). While it runs and agp_ls_backend is 0, nothing of
--- ours runs: no suit, no countdown, no HUD, no water rule, no prop gravity, no noclip rule, no planet colours. LS.SBOverride
--- (true / false) lets the self-test answer for a run (the Spacebuild-free branch; nil = really
--- ask).
+-- planet map, or CAF's Life Support addon, which runs on every map). While it runs and agp_ls_backend is 0, nothing of ours
+-- runs: no suit, no countdown, no HUD, no water rule, no prop gravity, no noclip rule, no planet colours. LS.SBOverride (true /
+-- false) lets the self-test answer for a run (the Spacebuild-free branch; nil = really ask).
+--
 function LS.SpacebuildLSRuns()
     if LS.SBOverride ~= nil then return LS.SBOverride end
     if GAMEMODE and (GAMEMODE.IsSpacebuildDerived or GAMEMODE.IsSpaceBuildDerived or GAMEMODE.SPACEBUILD) then return true end
@@ -432,7 +436,7 @@ end
 local function envAt(pos, noZones)
     for _, z in ipairs(noZones and {} or LS.Zones) do
         if IsValid(z.ent) and z.contains(pos) then
-            return { name = z.ent.PrintName or "Life support", breathable = true, gravity = 1, temp = z.ent.LSZoneTemp or 293, space = false, zone = z.ent }
+            return { name = z.ent.PrintName or "Life support", nameKey = z.ent.AGPNameKey, breathable = true, gravity = 1, temp = z.ent.LSZoneTemp or 293, space = false, zone = z.ent }
         end
     end
     for i = #LS.Interiors, 1, -1 do
@@ -508,7 +512,7 @@ end
 -- (percent, Kelvin; a life support area and a plain map without planets have an Earth-like mix, space has none)
 function LS.Probe(pos)
     local env = LS.EnvAt(pos)
-    local r = { name = env.name or "", breathable = env.breathable == true, temperature = env.temp or 293, gravity = env.gravity or 1,
+    local r = { name = env.name or "", nameKey = env.nameKey, breathable = env.breathable == true, temperature = env.temp or 293, gravity = env.gravity or 1,
         space = env.space == true, o2 = 0, co2 = 0, n = 0, h = 0, pressure = 0 }
     if env.planet then
         local p = env.planet
@@ -541,8 +545,8 @@ local function sync(p, s, env, drain, airOK, wet, mode)
     p:SetNWFloat("agp_air", s.air)
     p:SetNWFloat("agp_energy", s.energy)
     p:SetNWFloat("agp_coolant", s.coolant)
-    p:SetNWString("agp_env", env.name or "")
-    -- "ok" is whether you can breathe right now: a head under water is no good air, whatever the place is
+    p:SetNWString("agp_env", env.nameKey or env.name or "")   -- (the key of a part's name, for the player's language): "ok" is
+    -- whether you can breathe right now: a head under water is no good air, whatever the place is
     p:SetNWBool("agp_env_ok", airOK)
     p:SetNWInt("agp_env_temp", math.floor((env.temp or 293) - KELVIN + 0.5))   -- (rounded: 293 K showed as 19 C)
     p:SetNWBool("agp_ls_on", true)
@@ -603,10 +607,10 @@ local function suitTick(p, mode, dt)
     end
     -- breathing: air drains where the air is not breathable (or under water), refills where it is
     -- AGP:: a player in a sealed ship breathes ship air under water. Asked through a hook so PowerGrid needs no
-    -- ascension_gates (AGP.LS.PlayerSealed, see agp_ship_shield.lua). The same in space and in bad air: the
-    -- pilot of a small sealed ship saw the countdown run there too (display only, pilots take no damage, but
-    -- they stepped out with an empty suit) - asked, no objection. NOT aboard a ship that has its own life
-    -- support and has it switched off (env.interior: the Ha'tak's deliberate "no air on board").
+    -- ascension_gates (AGP.LS.PlayerSealed, see agp_ship_shield.lua). The same in space and in bad air: the pilot
+    -- of a small sealed ship saw the countdown run there too (display only, pilots take no damage, but they
+    -- stepped out with an empty suit) - asked, no objection. NOT aboard a ship that has its own life support and
+    -- has it switched off (env.interior: the Ha'tak's deliberate "no air on board").
     --
     local sealed = (wet or not env.breathable) and (env.breathable or not env.interior)
         and hook.Run("AGP.LS.PlayerSealed", p) == true
@@ -728,10 +732,16 @@ hook.Add("Think", "AGP.LS.Suit", function()
                 p:SetNWBool("agp_ls_on", false)
             end
         elseif p:Alive() then
-            if p:GetMoveType() == MOVETYPE_NOCLIP and LS.NoclipBlocked(p) then p:SetMoveType(MOVETYPE_WALK) end   -- already flying when it became space
-            if p:GetMoveType() ~= MOVETYPE_NOCLIP then
-                p.AGPLSWasOn = true
+            local seated = p:InVehicle()
+            -- already flying when it became space (not a seated player - in a seat GMod reports noclip too)
+            if not seated and p:GetMoveType() == MOVETYPE_NOCLIP and LS.NoclipBlocked(p) then p:SetMoveType(MOVETYPE_WALK) end
+            if p:GetMoveType() ~= MOVETYPE_NOCLIP or (seated and mode == 1 and cvSeats:GetBool()) then
+                p.AGPLSWasOn, p.AGPLSIdle = true, nil
                 suitTick(p, mode, 0.5)
+            elseif p.AGPLSWasOn and not p.AGPLSIdle then
+                -- (bug hunt): the suit does not run in noclip, but the last countdown stayed on the screen, frozen
+                p.AGPLSIdle = true
+                for _, key in ipairs({ "air", "energy", "coolant" }) do p:SetNWInt("agp_" .. key .. "_t", -1) end
             end
         end
     end
@@ -810,7 +820,7 @@ hook.Add("StarGate.Dial", "AGP.LS.GateReport", function(gate, target)
     if #recv == 0 then return end
     LS.LastReport = CurTime()
     net.Start("agp_ls_gate")
-    net.WriteString(env.name ~= "" and env.name or (target.GetGateName and target:GetGateName() or "") or "")
+    net.WriteString(env.nameKey or env.name ~= "" and env.name or (target.GetGateName and target:GetGateName() or "") or "")
     net.WriteBool(env.breathable == true)
     net.WriteInt(math.floor((env.temp or 293) - KELVIN), 16)
     net.WriteFloat(env.gravity or 1)

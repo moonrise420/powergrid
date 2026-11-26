@@ -65,6 +65,31 @@ local function linkable(e)
     return PowerGrid.Active and AGP.Power.Parts[e] ~= nil or e.IsAGPPower or (e.AGPRes and next(e.AGPRes)) or e.HasRD
 end
 
+-- (bug hunt): the tool never asked whose part it was - on a server anyone could link another player's cells into
+-- their own network (and drain them) or remove all their links. Now the same rule as the power node: prop
+-- protection (CPPI) when there is one, else only your own parts; admins any; parts without an owner anyone
+local function ownerOf(e)
+    if e.CPPIGetOwner then
+        local o = e:CPPIGetOwner()
+        if IsValid(o) then return o end
+    end
+    local c = e.GetCreator and e:GetCreator()
+    if IsValid(c) then return c end
+    local o = e.Owner
+    if IsValid(o) and o.IsPlayer and o:IsPlayer() then return o end
+end
+local function mayUse(ply, e)
+    if game.SinglePlayer() or not IsValid(ply) or ply:IsAdmin() then return true end
+    if e.CPPICanTool then return e:CPPICanTool(ply, "agp_power_link") == true end
+    local o = ownerOf(e)
+    return not IsValid(o) or o == ply
+end
+local function notYours(ply, e)
+    if mayUse(ply, e) then return false end
+    say(ply, "agp_msg_link_notyours", "That part belongs to another player.")
+    return true
+end
+
 -- AGP: in Automatic power mode links do nothing (parts share through welds, constraints and parents); the tool said
 -- "Linked N parts" and drew cables anyway. Now it says how Automatic mode works and links nothing
 local function automatic(ply)
@@ -80,6 +105,7 @@ function TOOL:LeftClick(tr)
     local ply = self:GetOwner()
     if automatic(ply) then return false end   -- AGP
     if not linkable(e) then say(ply, "agp_msg_link_nopower", "This part does not use power.") return false end
+    if notYours(ply, e) then return false end
     self.Sel = self.Sel or {}
     if self.Sel[e] then   -- clicked again: deselect
         self.Sel[e] = nil; self:SendSel()
@@ -97,10 +123,13 @@ function TOOL:RightClick(tr)
     local ply = self:GetOwner()
     if automatic(ply) then self.Sel = {}; self:SendSel() return false end   -- AGP
     if not self.Sel or not next(self.Sel) then say(ply, "agp_msg_link_none", "Select parts first (left click).") return false end
+    -- (bug hunt): only the left click asked - the right click linked parts to a crate, an NPC or a player
+    if not linkable(target) then say(ply, "agp_msg_link_nopower", "This part does not use power.") return false end
+    if notYours(ply, target) then return false end
     local R = rd()
     local n = 0
     for e in pairs(self.Sel) do
-        if IsValid(e) and e ~= target then
+        if IsValid(e) and e ~= target and mayUse(ply, e) then   -- (it may have changed hands since it was selected)
             if R then
                 if not target.IsNode then say(ply, "agp_msg_link_nonode", "Spacebuild runs here: link to a power node.") break end
                 if e.IsNode then R.linkNodes(e.netid, target.netid) else R.Link(e, target.netid) end
@@ -126,6 +155,7 @@ function TOOL:Reload(tr)
     end
     local e = tr.Entity
     if not IsValid(e) then return false end
+    if not ply:KeyDown(IN_SPEED) and notYours(ply, e) then return false end
     if rd() then
         if not e.IsNode and table.Count(rd().GetEntityTable(e) or {}) > 0 then rd().Unlink(e); say(ply, "agp_msg_link_removed", "All links of %s removed.", name(e)) end
         return true

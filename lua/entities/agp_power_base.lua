@@ -724,7 +724,7 @@ if SERVER then
         local c = (r.temperature or 273.15) - 273.15   -- Wire: degrees C, like the Life Support Core's outputs
         self:SetOn(true)
         self:SetNWString("agp_info", string.format("o2=%s;co2=%s;n=%s;h=%s;p=%s;t=%s;g=%s;b=%d;s=%d;nm=%s", num(r.o2), num(r.co2), num(r.n), num(r.h),
-            num(r.pressure), num(c), num(r.gravity), r.breathable and 1 or 0, r.space and 1 or 0, string.sub(tostring(r.name or ""), 1, 40)))
+            num(r.pressure), num(c), num(r.gravity), r.breathable and 1 or 0, r.space and 1 or 0, string.sub(tostring(r.nameKey or r.name or ""), 1, 40)))
         if self.SetWire then
             self:SetWire("Oxygen", r.o2 or 0); self:SetWire("Carbon Dioxide", r.co2 or 0); self:SetWire("Nitrogen", r.n or 0)
             self:SetWire("Hydrogen", r.h or 0); self:SetWire("Pressure", r.pressure or 0); self:SetWire("Temperature", math.Round(c, 1))
@@ -869,7 +869,10 @@ if SERVER then
         if not ls then return false end
         if on then
             local z = self.AGPZone
-            if ls.AddGravityZone and not (z and z.r == self.AGPRadius and z.g == self.AGPGrav and z.api == ls.AddGravityZone) then
+            -- (bug hunt): the planets are read again after a map cleanup / a loaded save, which empties the zones - a
+            -- regulator from the save kept its note and never made its zone again (running, paid for, no gravity)
+            local kept = not ls.GravZones or ls.GravZones[self] ~= nil
+            if ls.AddGravityZone and not (z and kept and z.r == self.AGPRadius and z.g == self.AGPGrav and z.api == ls.AddGravityZone) then
                 ls.AddGravityZone(self, self.AGPRadius, self.AGPGrav)
                 self.AGPZone = { r = self.AGPRadius, g = self.AGPGrav, api = ls.AddGravityZone }
             end
@@ -959,9 +962,9 @@ if SERVER then
             -- AGP: only as much as the network can still take, and energy only for that (nothing when full)
             local res = k == "compressor" and (self.AGPGas == "nitrogen" and "nitrogen" or "oxygen") or "water"
             local amount = math.min(self.AGPRate, math.floor(self:AGPRoom(res)))
-            -- (the author's list: "makes oxygen from nothing"): in the open air of a planet the compressor takes the
-            -- oxygen out of that planet's air (like the plants take its carbon dioxide); no more than the air still has.
-            -- Without a planet (a map's normal air) or inside a ship it compresses the air around it as before
+            -- in the open air of a planet the compressor takes the oxygen out of that planet's air (like the plants take
+            -- its carbon dioxide); no more than the air still has. Without a planet (a map's normal air) or inside a
+            -- ship it compresses the air around it as before
             local ls, planet = AGP and AGP.LS, nil
             if k == "compressor" and can and ls and ls.PlanetAt and ls.ChangeGas and not env.interior then
                 planet = ls.PlanetAt(self:WorldSpaceCenter())
@@ -1062,7 +1065,13 @@ if SERVER then
         if PowerGrid.Active and AGP and AGP.Power then
             local sum, n = AGP.Power.Summary(self)
             parts = n
-            for res, v in SortedPairs(sum) do txt[#txt + 1] = res .. "=" .. math.floor(v.amount) .. "/" .. math.floor(v.max) end
+            -- (bug hunt, seen in a picture): by the alphabet alone every network with a Life Support Core showed carbon
+            -- dioxide first - a cell's or node's one-line screen had no energy on it, and a cell glowed by the carbon
+            -- dioxide. Now a tank shows its own resource first, everything else energy
+            local first = k == "tank" and self.TankRes or "energy"
+            local function add(res, v) txt[#txt + 1] = res .. "=" .. math.floor(v.amount) .. "/" .. math.floor(v.max) end
+            if sum[first] then add(first, sum[first]) end
+            for res, v in SortedPairs(sum) do if res ~= first then add(res, v) end end
         else
             local e, cap = self:NetEnergy()
             txt[#txt + 1] = "energy=" .. math.floor(e) .. "/" .. math.floor(cap)
@@ -1090,10 +1099,16 @@ if SERVER then
 end
 
 if CLIENT then
+    -- every part took its text apart twice a frame; the same text (all parts of a network) is read once now
+    local parsed, parsedN = {}, 0
     local function parse(s)
+        local c = parsed[s or ""]
+        if c then return c.parts, c.list end
         local parts, rest = (s or ""):match("^(%d+)|(.*)$")
         local list = {}
         for res, a, m in (rest or ""):gmatch("([^=;]+)=(%d+)/(%d+)") do list[#list + 1] = { res = res, amount = tonumber(a), max = tonumber(m) } end
+        if parsedN > 200 then parsed, parsedN = {}, 0 end
+        parsed[s or ""], parsedN = { parts = tonumber(parts) or 0, list = list }, parsedN + 1
         return tonumber(parts) or 0, list
     end
     ENT.ParseSummary = parse
@@ -1133,7 +1148,7 @@ if CLIENT then
             local v = kv(self:GetNWString("agp_info", ""))
             local c = tonumber(v.t) or 0
             local function temp(cc) return AGP.Units and AGP.Units.Temp and AGP.Units.Temp(cc) or string.format("%d C", math.Round(cc)) end
-            return { { L("agp_pw_pr_place", "Place"), (v.nm and v.nm ~= "") and v.nm or "-", WHITE },
+            return { { L("agp_pw_pr_place", "Place"), (v.nm and v.nm ~= "") and (AGP.LSPlaceName and AGP.LSPlaceName(v.nm) or v.nm) or "-", WHITE },
                 { PowerGrid.ResName("oxygen"), (v.o2 or "0") .. " %", WHITE }, { PowerGrid.ResName("carbon dioxide"), (v.co2 or "0") .. " %", WHITE },
                 { PowerGrid.ResName("nitrogen"), (v.n or "0") .. " %", WHITE }, { PowerGrid.ResName("hydrogen"), (v.h or "0") .. " %", WHITE },
                 { L("agp_pw_pr_pressure", "Pressure"), v.p or "0", WHITE }, { L("agp_pw_pr_temp", "Temperature"), temp(c), WHITE },
@@ -1223,6 +1238,23 @@ if CLIENT then
         end
     end
     ENT.DrawPanel = panel
+    -- (bug hunt, seen in a picture): a floating screen was drawn together with its part, so parts and screens BEHIND it
+    -- that were drawn later covered it. The screens are drawn after all parts now, the far ones first
+    local screens = {}
+    hook.Add("PostDrawTranslucentRenderables", "AGP.Power.Screens", function(depth, sky)
+        if depth or sky or not next(screens) then return end
+        local list, eye = {}, EyePos()
+        for e, s in pairs(screens) do
+            if IsValid(e) then s.e, s.d = e, s.pos:DistToSqr(eye) list[#list + 1] = s end
+        end
+        screens = {}
+        table.sort(list, function(a, b) return a.d > b.d end)
+        for _, s in ipairs(list) do
+            cam.Start3D2D(s.pos, s.ang, s.scale)
+                panel(s.e, s.w, s.h, true)
+            cam.End3D2D()
+        end
+    end)
     function ENT:OnRemove()
         if AGP and AGP.PowerAnimStop then AGP.PowerAnimStop(self) end
     end
@@ -1255,8 +1287,6 @@ if CLIENT then
         if self.AGPKind == "probe" then h = 52 + #info * 24 end   -- no bars at all
         local pos = self:LocalToWorld(Vector(0, 0, self:OBBMaxs().z + (sc.up or 12) + h * (sc.scale or 0.05) / 2))
         local ang = Angle(0, LocalPlayer():EyeAngles().y - 90, 90)
-        cam.Start3D2D(pos, ang, sc.scale or 0.05)
-            panel(self, w, h, true)
-        cam.End3D2D()
+        screens[self] = { pos = pos, ang = ang, scale = sc.scale or 0.05, w = w, h = h }
     end
 end

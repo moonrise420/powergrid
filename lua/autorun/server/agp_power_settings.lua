@@ -17,6 +17,7 @@ local SETTINGS = {
     agp_ls_pressure = { min = 0, max = 1 },
     agp_ls_stars = { min = 0, max = 1 },
     agp_ls_gas_use = { min = 0, max = 1 },
+    agp_ls_seats = { min = 0, max = 1 },
 }
 
 local function allowed(p) return IsValid(p) and (p:IsAdmin() or game.SinglePlayer()) end
@@ -46,6 +47,7 @@ local function sendState(p)
     net.WriteBool(get("agp_ls_gas_use") == 1)
     -- Spacebuild's own life support runs and ours stands back (agp_ls_backend 0)
     net.WriteBool(get("agp_ls_backend") ~= 1 and AGP and AGP.LS and AGP.LS.SpacebuildLSRuns and AGP.LS.SpacebuildLSRuns() or false)
+    net.WriteBool(get("agp_ls_seats") == 1)   -- seats in space need life support
     net.Send(p)
 end
 

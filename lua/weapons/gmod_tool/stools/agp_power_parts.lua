@@ -56,6 +56,9 @@ function TOOL:Place(tr, turn)
     local e = st and st.SpawnFunction and st:SpawnFunction(ply, tr, cls)
     if (not IsValid(e)) then return false end
     if (turn) then e:SetAngles(e:GetAngles() + Angle(0, 90, 0)) end
+    -- (bug hunt): the part had no owner (the spawn menu sets it, this tool did not): on a server a node placed with it
+    -- linked anybody's parts, and "Others see my cables" off did not hide its cables
+    if (e.SetCreator) then e:SetCreator(ply) end
     if (e.CPPISetOwner) then e:CPPISetOwner(ply) end
     gamemode.Call("PlayerSpawnedSENT", ply, e)
     undo.Create("SENT"); undo.AddEntity(e)
@@ -79,21 +82,47 @@ function TOOL:Reload(tr)
     return true
 end
 
-if CLIENT then
+do
     -- ghost of the chosen part where it would land
+    -- (bug hunt: it ran on the client only, but in single player GMod makes tool ghosts on the server side -
+    -- MakeGhostEntity does nothing on the client there - so single player never showed a ghost. Both sides now, as
+    -- GMod's own tools; MakeGhostEntity itself skips the side that does not make it)
     function TOOL:Think()
+        if (SERVER and not game.SinglePlayer()) or (CLIENT and game.SinglePlayer()) then return end
         local cls = self:GetClientInfo("class")
         local st = scripted_ents.GetStored(cls)
         local mdl = st and st.t.AGPModel
         if (not mdl) then self:ReleaseGhostEntity() return end
         if (not IsValid(self.GhostEntity) or self.GhostEntity:GetModel() ~= mdl) then
             self:MakeGhostEntity(mdl, vector_origin, angle_zero)
+            -- (bug hunt: on a server GMod's util.IsValidProp says no for our models on the client, so
+            -- MakeGhostEntity made no ghost there either. The ghost has no physics anyway: make it as GMod does, without that check)
+            if (CLIENT and not IsValid(self.GhostEntity) and IsFirstTimePredicted()) then
+                local g = ents.CreateClientProp(mdl)
+                if (IsValid(g)) then
+                    g:SetModel(mdl)
+                    g:Spawn()
+                    g:PhysicsDestroy()
+                    g:SetMoveType(MOVETYPE_NONE)
+                    g:SetNotSolid(true)
+                    g:SetRenderMode(RENDERMODE_TRANSCOLOR)
+                    g:SetColor(Color(255, 255, 255, 150))
+                    g.DoNotDuplicate, g.IsToolGhost = true, true
+                    self.GhostEntity = g
+                end
+            end
         end
         local g = self.GhostEntity
         if (not IsValid(g)) then return end
         local tr = self:GetOwner():GetEyeTrace()
         if (not tr.Hit) then g:SetNoDraw(true) return end
         g:SetNoDraw(false)
+        -- (a display on a wall hangs on it - the ghost stood in front of it as on the floor)
+        if (st.t.AGPKind == "display" and math.abs(tr.HitNormal.z) < 0.5) then
+            g:SetAngles(tr.HitNormal:Angle())
+            g:SetPos(tr.HitPos + tr.HitNormal * (0.5 - g:OBBMins().x) - Vector(0, 0, (g:OBBMaxs().z - g:OBBMins().z) / 2))
+            return
+        end
         g:SetAngles(Angle(0, (self:GetOwner():GetAimVector():Angle().y + 180) % 360, 0))
         g:SetPos(tr.HitPos - Vector(0, 0, g:OBBMins().z))
     end

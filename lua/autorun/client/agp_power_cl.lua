@@ -39,7 +39,14 @@ hook.Add("PostDrawTranslucentRenderables", "AGP.Power.Cables", function(depth, s
             local pa, pb = a:WorldSpaceCenter(), b:WorldSpaceCenter()
             if pa:DistToSqr(eye) < 4000 * 4000 or pb:DistToSqr(eye) < 4000 * 4000 then
                 -- a slightly hanging cable with a soft blue power glow running along it
-                local mid = (pa + pb) / 2 - Vector(0, 0, math.min(80, pa:Distance(pb) * 0.08))
+                -- (seen in a picture: it hung into the floor; how far it can hang is looked up every 2 seconds)
+                local mid = (pa + pb) / 2
+                if (l[4] or 0) < t then
+                    l[4] = t + 2
+                    local tr = util.TraceLine({ start = mid, endpos = mid - Vector(0, 0, 44), mask = MASK_SOLID_BRUSHONLY })
+                    l[3] = tr.Hit and math.max(0, tr.Fraction * 44 - 3) * 2 or 80
+                end
+                mid.z = mid.z - math.min(l[3], pa:Distance(pb) * 0.08)
                 render.SetMaterial(mat)
                 render.StartBeam(9)
                 for s = 0, 8 do
